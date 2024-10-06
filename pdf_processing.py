@@ -2,6 +2,7 @@ import fitz  # PyMuPDF
 import base64
 from azure_api import get_image_explanation, summarize_page
 from concurrent.futures import ThreadPoolExecutor
+from io import BytesIO
 
 def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
@@ -54,34 +55,37 @@ def process_single_page(pdf_document, page_number, previous_summary):
         "image_analysis": image_analysis
     }
 
-def process_pdf_pages(pdf_document, document_name):
+def process_pdf_pages(uploaded_file, document_name):
     """Process each page and extract image analysis and summaries for comparative study."""
     document_data = {"pages": [], "document_name": document_name}
     previous_summary = ""
 
-    for page_number in range(len(pdf_document)):
-        page = pdf_document.load_page(page_number)
-        text = page.get_text("text").strip()
-        
-        # Summarize the page with document context
-        summary = summarize_page(text, previous_summary, page_number + 1, document_name)
-        previous_summary = summary
-        
-        # Detect images or graphics on the page (using your OCR logic)
-        detected_images = detect_ocr_images_and_vector_graphics_in_pdf(pdf_document, 0.18)
-        image_analysis = []
+    # Open the PDF document from the uploaded file stream
+    with fitz.open(stream=uploaded_file.read(), filetype="pdf") as pdf_document:
+        for page_number in range(len(pdf_document)):
+            page = pdf_document.load_page(page_number)
+            text = page.get_text("text").strip()
+            
+            # Summarize the page with document context
+            summary = summarize_page(text, previous_summary, page_number + 1, document_name)
+            previous_summary = summary
+            
+            # Detect images or graphics on the page (using your OCR logic)
+            detected_images = detect_ocr_images_and_vector_graphics_in_pdf(pdf_document, page_number)
+            image_analysis = []
 
-        for img_page, base64_image in detected_images:
-            if img_page == page_number + 1:
-                # Analyze the image with the document context
-                image_explanation = get_image_explanation(base64_image, document_name)
-                image_analysis.append({"page_number": img_page, "explanation": image_explanation})
+            if detected_images:
+                for img_page, base64_image in detected_images:
+                    if img_page == page_number + 1:
+                        # Analyze the image with the document context
+                        image_explanation = get_image_explanation(base64_image, document_name)
+                        image_analysis.append({"page_number": img_page, "explanation": image_explanation})
 
-        # Store the extracted data in JSON format with document context
-        document_data["pages"].append({
-            "page_number": page_number + 1,
-            "text_summary": summary,
-            "image_analysis": image_analysis
-        })
+            # Store the extracted data in JSON format with document context
+            document_data["pages"].append({
+                "page_number": page_number + 1,
+                "text_summary": summary,
+                "image_analysis": image_analysis
+            })
 
     return document_data
