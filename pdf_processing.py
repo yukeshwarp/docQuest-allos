@@ -54,20 +54,34 @@ def process_single_page(pdf_document, page_number, previous_summary):
         "image_analysis": image_analysis
     }
 
-def process_pdf_pages(pdf_document):
-    """Process all PDF pages concurrently."""
-    document_data = {"pages": []}
+def process_pdf_pages(pdf_document, document_name):
+    """Process each page and extract image analysis and summaries for comparative study."""
+    document_data = {"pages": [], "document_name": document_name}
     previous_summary = ""
 
-    with ThreadPoolExecutor() as executor:
-        futures = []
-        for page_number in range(len(pdf_document)):
-            # Schedule each page processing task
-            futures.append(executor.submit(process_single_page, pdf_document, page_number, previous_summary))
+    for page_number in range(len(pdf_document)):
+        page = pdf_document.load_page(page_number)
+        text = page.get_text("text").strip()
         
-        for future in futures:
-            result = future.result()
-            previous_summary = result["text_summary"]  # Update the summary for context in subsequent pages
-            document_data["pages"].append(result)
+        # Summarize the page with document context
+        summary = summarize_page(text, previous_summary, page_number + 1, document_name)
+        previous_summary = summary
+        
+        # Detect images or graphics on the page (using your OCR logic)
+        detected_images = detect_ocr_images_and_vector_graphics_in_pdf(pdf_document, 0.18)
+        image_analysis = []
+
+        for img_page, base64_image in detected_images:
+            if img_page == page_number + 1:
+                # Analyze the image with the document context
+                image_explanation = get_image_explanation(base64_image, document_name)
+                image_analysis.append({"page_number": img_page, "explanation": image_explanation})
+
+        # Store the extracted data in JSON format with document context
+        document_data["pages"].append({
+            "page_number": page_number + 1,
+            "text_summary": summary,
+            "image_analysis": image_analysis
+        })
 
     return document_data
