@@ -63,15 +63,21 @@ with st.sidebar:
                 return uploaded_file.name, None
 
         # Initialize ThreadPoolExecutor to process documents in parallel
+        futures = []
         with ThreadPoolExecutor() as executor:
-            futures = {executor.submit(process_document, uploaded_file): uploaded_file.name for uploaded_file in uploaded_files}
-            for future in as_completed(futures):
+            for uploaded_file in uploaded_files:
+                futures.append(executor.submit(process_document, uploaded_file))
+
+            # Display a progress bar for processing
+            progress_bar = st.progress(0)
+            for i, future in enumerate(as_completed(futures), 1):
                 doc_name, document_data = future.result()
                 if document_data:  # Check if the document was successfully processed
                     st.session_state.documents[doc_name] = document_data
                     st.success(f"{doc_name} processed successfully!")
                 else:
                     st.error(f"Failed to process {doc_name}")
+                progress_bar.progress(i / len(uploaded_files))
 
     # Download button for complete analysis
     if st.session_state.documents:
