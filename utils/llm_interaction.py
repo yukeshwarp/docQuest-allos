@@ -106,11 +106,7 @@ def ask_question(documents, question, chat_history):
 
     # Prepare the prompt message
     prompt_message = (
-        f"Now, using the following document analysis as context, answer the question.\n\n"
-        f"Context:\n{combined_content}\n"
-        f"Question: {question}\n"
-        f"Previous responses over the current chat session: {conversation_history}"
-    )
+        f"Use the context as knowledge base and answer the question in a proper redable format: {question}\n\Context:\n{combined_content}\nPrevious responses over the current chat session: {conversation_history}")
 
     headers = get_headers()
 
