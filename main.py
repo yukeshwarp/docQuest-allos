@@ -14,7 +14,8 @@ if 'chat_history' not in st.session_state:
 def handle_question(prompt):
     if prompt:
         try:
-            with st.spinner('Generating answer...'):
+            # Show a spinner while analyzing the question
+            with st.spinner('Analyzing...'):
                 answer = ask_question(
                     st.session_state.documents, prompt, st.session_state.chat_history
                 )
@@ -31,13 +32,7 @@ with st.sidebar:
     if st.session_state.documents:
         st.write("Current Documents:")
         for doc_name in st.session_state.documents.keys():
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(doc_name)
-            with col2:
-                if st.button("Remove", key=doc_name):
-                    del st.session_state.documents[doc_name]
-                    st.success(f"{doc_name} removed successfully!")
+            st.write(doc_name)
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -45,15 +40,13 @@ with st.sidebar:
         type=["pdf", "docx", "xlsx", "pptx"],
         accept_multiple_files=True,
         help="Supports PDF, DOCX, XLSX, and PPTX formats.",
+        key="file_uploader"  # Unique key for the file uploader
     )
 
+    # Remove previously uploaded files from the uploader
     if uploaded_files:
-        new_files = []
-        for uploaded_file in uploaded_files:
-            if uploaded_file.name not in st.session_state.documents:
-                new_files.append(uploaded_file)
-            else:
-                st.info(f"{uploaded_file.name} is already uploaded.")
+        # Create a list of new files to process
+        new_files = [uploaded_file for uploaded_file in uploaded_files if uploaded_file.name not in st.session_state.documents]
 
         if new_files:
             # Use a placeholder to show progress
@@ -64,20 +57,22 @@ with st.sidebar:
             # Process only new files using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=2) as executor:
                 future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
+                
+                # Show a spinner while processing the files
+                with st.spinner("Processing your documents..."):
+                    for i, future in enumerate(as_completed(future_to_file)):
+                        uploaded_file = future_to_file[future]
+                        try:
+                            # Get the result from the future
+                            document_data = future.result()
+                            st.session_state.documents[uploaded_file.name] = document_data
+                            st.success(f"{uploaded_file.name} processed successfully!")
+                        except Exception as e:
+                            st.error(f"Error processing {uploaded_file.name}: {e}")
 
-                for i, future in enumerate(as_completed(future_to_file)):
-                    uploaded_file = future_to_file[future]
-                    try:
-                        # Get the result from the future
-                        document_data = future.result()
-                        st.session_state.documents[uploaded_file.name] = document_data
-                        st.success(f"{uploaded_file.name} processed successfully!")
-                    except Exception as e:
-                        st.error(f"Error processing {uploaded_file.name}: {e}")
+                        # Update progress bar
+                        progress_bar.progress((i + 1) / total_files)
 
-                    # Update progress bar
-                    progress_bar.progress((i + 1) / total_files)
-                    
             progress_text.text("Processing complete.")
             progress_bar.empty()
 
@@ -92,7 +87,7 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("know more about your documents..", divider="orange")
+st.subheader("Know more about your documents...", divider="orange")
 
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
