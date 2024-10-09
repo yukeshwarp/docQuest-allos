@@ -1,6 +1,6 @@
 import io
 import requests
-from config import *
+from utils.config import azure_function_url
 
 MIME_TYPES = {
     "doc": "application/msword",
