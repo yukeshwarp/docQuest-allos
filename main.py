@@ -15,44 +15,13 @@ def handle_question(prompt):
     if prompt:
         try:
             with st.spinner('Generating answer...'):
-                # Get response from the AI model
                 answer = ask_question(
                     st.session_state.documents, prompt, st.session_state.chat_history
                 )
-            # Add the question-answer pair to the chat history
             st.session_state.chat_history.append({"question": prompt, "answer": answer})
-            # Update the chat display
             display_chat()
         except Exception as e:
             st.error(f"Error processing question: {e}")
-
-# Function to process files in parallel
-def process_files_in_parallel(files):
-    document_data = {}
-    with ThreadPoolExecutor() as executor:
-        # Use ThreadPoolExecutor to process files concurrently
-        future_to_file = {executor.submit(process_pdf_pages, f): f for f in files}
-        total_files = len(files)
-        
-        progress_text = st.empty()
-        progress_bar = st.progress(0)
-
-        for i, future in enumerate(as_completed(future_to_file)):
-            file = future_to_file[future]
-            try:
-                result = future.result()  # Get the processed PDF result
-                document_data[file.name] = result
-                st.session_state.documents[file.name] = result
-                st.success(f"{file.name} processed successfully!")
-            except Exception as e:
-                st.error(f"Error processing {file.name}: {e}")
-            
-            # Update progress bar
-            progress_bar.progress((i + 1) / total_files)
-            progress_text.text(f"Processing {i + 1}/{total_files} files complete.")
-        
-        progress_text.text("Processing complete.")
-        progress_bar.empty()
 
 # Sidebar for file upload and document information
 with st.sidebar:
@@ -67,11 +36,38 @@ with st.sidebar:
     )
 
     if uploaded_files:
-        new_files = [f for f in uploaded_files if f.name not in st.session_state.documents]
+        new_files = []
+        for uploaded_file in uploaded_files:
+            if uploaded_file.name not in st.session_state.documents:
+                new_files.append(uploaded_file)
+            else:
+                st.info(f"{uploaded_file.name} is already uploaded.")
 
         if new_files:
-            with st.spinner('Processing documents...'):
-                process_files_in_parallel(new_files)  # Process files in parallel
+            # Use a placeholder to show progress
+            progress_text = st.empty()
+            progress_bar = st.progress(0)
+            total_files = len(new_files)
+
+            # Process files in pairs using ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=2) as executor:
+                future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
+
+                for i, future in enumerate(as_completed(future_to_file)):
+                    uploaded_file = future_to_file[future]
+                    try:
+                        # Get the result from the future
+                        document_data = future.result()
+                        st.session_state.documents[uploaded_file.name] = document_data
+                        st.success(f"{uploaded_file.name} processed successfully!")
+                    except Exception as e:
+                        st.error(f"Error processing {uploaded_file.name}: {e}")
+
+                    # Update progress bar
+                    progress_bar.progress((i + 1) / total_files)
+                    
+            progress_text.text("Processing complete.")
+            progress_bar.empty()
 
     if st.session_state.documents:
         download_data = json.dumps(st.session_state.documents, indent=4)
@@ -83,7 +79,7 @@ with st.sidebar:
         )
 
 # Main Page - Chat Interface
-st.title("💬 docQuest : Document Intelligence")
+st.title("💬 docQuest AI Assistant")
 
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
@@ -97,12 +93,10 @@ if st.session_state.documents:
             st.write("")  # Clear previous chat
             for chat in st.session_state.chat_history:
                 user_message = f"""
-                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right;'> {chat['question']}
-                </div>
+                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right;'> {chat['question']}</div>
                 """
                 assistant_message = f"""
-                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left;'> {chat['answer']}
-                </div>
+                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left;'> {chat['answer']}</div>
                 """
                 st.markdown(user_message, unsafe_allow_html=True)
                 st.markdown(assistant_message, unsafe_allow_html=True)
