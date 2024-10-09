@@ -91,7 +91,7 @@ def process_pdf_pages(uploaded_file):
         
         # Process the PDF document
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
-        document_data = {"pages": [], "name": file_name}
+        document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
 
         # Batch size of 5 pages
@@ -118,4 +118,5 @@ def process_pdf_pages(uploaded_file):
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
+
 
