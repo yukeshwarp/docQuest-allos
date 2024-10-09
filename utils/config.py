@@ -7,4 +7,4 @@ azure_endpoint = os.getenv("AZURE_ENDPOINT")
 api_key = os.getenv("API_KEY")
 api_version = os.getenv("API_VERSION")
 model = os.getenv("MODEL")
-azure_function_url = 'https://doc2pdf.azurewebsites.net/api/HttpTrigger1'
+azure_function_url = os.getenv("AZURE_FUNCTION_URL")
