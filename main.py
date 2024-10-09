@@ -27,6 +27,18 @@ def handle_question(prompt):
 with st.sidebar:
     st.subheader("📄 Upload Your Documents")
 
+    # Display currently uploaded documents
+    if st.session_state.documents:
+        st.write("Current Documents:")
+        for doc_name in st.session_state.documents.keys():
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(doc_name)
+            with col2:
+                if st.button("Remove", key=doc_name):
+                    del st.session_state.documents[doc_name]
+                    st.success(f"{doc_name} removed successfully!")
+
     # File uploader
     uploaded_files = st.file_uploader(
         "Upload files here",
@@ -49,7 +61,7 @@ with st.sidebar:
             progress_bar = st.progress(0)
             total_files = len(new_files)
 
-            # Process files in pairs using ThreadPoolExecutor
+            # Process only new files using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=2) as executor:
                 future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
 
@@ -79,7 +91,8 @@ with st.sidebar:
         )
 
 # Main Page - Chat Interface
-st.title("💬 docQuest AI Assistant")
+st.title("docQuest")
+st.subheader("know more about your documents..", divider="orange")
 
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
