@@ -7,6 +7,8 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Initialize session state variables
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
+if 'uploaded_files' not in st.session_state:
+    st.session_state.uploaded_files = []
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
@@ -32,7 +34,15 @@ with st.sidebar:
     if st.session_state.documents:
         st.write("Current Documents:")
         for doc_name in st.session_state.documents.keys():
-            st.write(doc_name)
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.write(doc_name)
+            with col2:
+                # Remove document context when removed from the uploader
+                if st.button("Remove", key=doc_name):
+                    del st.session_state.documents[doc_name]
+                    st.session_state.uploaded_files.remove(doc_name)
+                    st.success(f"{doc_name} removed successfully!")
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -43,11 +53,14 @@ with st.sidebar:
         key="file_uploader"  # Unique key for the file uploader
     )
 
-    # Remove previously uploaded files from the uploader
+    # Add new uploaded files to the session state
     if uploaded_files:
-        # Create a list of new files to process
-        new_files = [uploaded_file for uploaded_file in uploaded_files if uploaded_file.name not in st.session_state.documents]
+        new_files = [uploaded_file for uploaded_file in uploaded_files if uploaded_file.name not in st.session_state.uploaded_files]
 
+        for new_file in new_files:
+            st.session_state.uploaded_files.append(new_file.name)
+
+        # Process only new files using ThreadPoolExecutor
         if new_files:
             # Use a placeholder to show progress
             progress_text = st.empty()
