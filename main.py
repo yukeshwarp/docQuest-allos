@@ -12,7 +12,6 @@ if 'question_input' not in st.session_state:
     st.session_state.question_input = ""
 
 # Function to handle user question and get the answer
-# Function to handle user question and get the answer
 def handle_question(prompt):
     if prompt:
         try:
@@ -22,7 +21,6 @@ def handle_question(prompt):
             st.session_state.chat_history.append({"question": prompt, "answer": answer})
         except Exception as e:
             st.error(f"Error in processing question: {e}")
-
 
 # Function to display document data
 def display_documents_data():
@@ -37,16 +35,20 @@ def display_documents_data():
                     st.write(f"- Page {img['page_number']}: {img['explanation']}")
             st.markdown("---")  # Separator for pages
 
-# Streamlit application title
-st.title("docQuest")
+# Streamlit application title with modern styling
+st.markdown("<h1 style='text-align: center; color: #4B9CD3;'>docQuest: Document AI Assistant</h1>", unsafe_allow_html=True)
 
 # Sidebar for file upload and document information
 with st.sidebar:
-    st.subheader("docQuest")
-    
-    # File uploader
-    uploaded_files = st.file_uploader("Upload and manage files here",type=["pdf", "doc", "dot", "csv", "docx", "dotx", "docm", "dotm","xls", "xlt", "xla", "xlsx", "xltx", "xlsm", "xltm", "xlam", "xlsb","ppt", "pot", "pps", "ppa", "pptx", "potx", "ppsx", "ppam", "pptm","potm", "ppsm", "mdb"],accept_multiple_files=True)
+    st.subheader("docQuest: File Upload")
 
+    # File uploader with updated error handling for better user feedback
+    uploaded_files = st.file_uploader(
+        "Upload files here",
+        type=["pdf", "docx", "xlsx", "pptx"],
+        accept_multiple_files=True,
+        help="Supports multiple document formats: PDF, DOCX, XLSX, PPTX"
+    )
 
     if uploaded_files:
         for uploaded_file in uploaded_files:
@@ -54,59 +56,45 @@ with st.sidebar:
             if uploaded_file.name not in st.session_state.documents:
                 st.session_state.documents[uploaded_file.name] = None  # Initialize with None
 
-                # Process the PDF if not already processed
                 try:
                     with st.spinner(f'Processing {uploaded_file.name}...'):
                         st.session_state.documents[uploaded_file.name] = process_pdf_pages(uploaded_file)
-                    st.success(f"{uploaded_file.name} processed successfully! Let's explore your documents.")
+                    st.success(f"{uploaded_file.name} processed successfully!")
                 except Exception as e:
                     st.error(f"Error processing {uploaded_file.name}: {e}")
+            else:
+                st.info(f"{uploaded_file.name} is already uploaded.")
 
     # Download button for complete analysis
     if st.session_state.documents:
-        # Convert document data to JSON for download
         download_data = json.dumps(st.session_state.documents, indent=4)
-        
-        # Add a button to download the document analysis
         st.download_button(
-            label="Download Analysis",
+            label="Download Document Analysis",
             data=download_data,
             file_name="document_analysis.json",
-            mime="application/json"
+            mime="application/json",
+            help="Download the detailed analysis of uploaded documents."
         )
 
 # Main page for chat interaction
 if st.session_state.documents:
-    st.subheader("Let us know more about your documents..")
+    st.subheader("Ask questions about your documents")
     
-    # Display document data
-    #display_documents_data()
-
-    # Create a placeholder container for chat history
-    chat_placeholder = st.empty()
-
     # Function to display chat history dynamically
     def display_chat():
-        with chat_placeholder.container():
-            if st.session_state.chat_history:
-                st.subheader("Chats", divider="orange")
-                for chat in st.session_state.chat_history:
-                    # ChatGPT-like alignment: user input on the right, assistant response on the left                
-                    user_chat = f"<div style='float: right; display: inline-block; margin: 5px; border-radius: 8px; padding: 10px; margin-left: 3vw;'> {chat['question']}</div>"
-                    assistant_chat = f"<div style='float: left; display: inline-block; margin: 5px; border-radius: 8px; padding: 10px; margin-right: 3vw;'> {chat['answer']}</div>"                    
-                    st.markdown(f"\n")
-                    st.markdown(user_chat, unsafe_allow_html=True)
-                    st.markdown(assistant_chat, unsafe_allow_html=True)
-                    st.markdown("---")
+        for chat in st.session_state.chat_history:
+            st.markdown(f"<div style='text-align: right; color: #444; background-color: #EEE; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['question']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: left; color: #444; background-color: #F9F9F9; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['answer']}</div>", unsafe_allow_html=True)
+            st.markdown("---")
 
     # Display the chat history
     display_chat()
 
-    # Input for user questions using chat input
-    prompt = st.chat_input("Let me know what you want to know about your documents..", key="chat_input")
-    
-    # Check if the prompt has been updated
+    # Input for user questions with better style and handling
+    st.markdown("<p style='color: #555;'>Type your question below:</p>", unsafe_allow_html=True)
+    prompt = st.text_input("Ask a question", key="chat_input", placeholder="E.g., What is the summary of page 1?")
+
     if prompt:
-        handle_question(prompt)  # Call the function to handle the question
-        st.session_state.question_input = ""  # Clear the input field after sending
+        handle_question(prompt)
         display_chat()  # Re-display the chat after adding the new entry
+
