@@ -23,21 +23,8 @@ def handle_question(prompt):
         except Exception as e:
             st.error(f"Error in processing question: {e}")
 
-# Function to display document data
-def display_documents_data():
-    for doc_name, doc_data in st.session_state.documents.items():
-        st.subheader(f"Document: {doc_name}")
-        for page in doc_data["pages"]:
-            st.write(f"**Page {page['page_number']} Summary:**")
-            st.write(page['text_summary'])
-            if page['image_analysis']:
-                st.write("**Image Analysis:**")
-                for img in page['image_analysis']:
-                    st.write(f"- Page {img['page_number']}: {img['explanation']}")
-            st.markdown("---")  # Separator for pages
-
 # Streamlit application title with modern styling
-st.markdown("<h1 style='text-align: center; color: #4B9CD3;'>docQuest: Document AI Assistant</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>docQuest: Document AI Assistant</h1>", unsafe_allow_html=True)
 
 # Sidebar for file upload and document information
 with st.sidebar:
@@ -99,8 +86,8 @@ if st.session_state.documents:
     def display_chat():
         if st.session_state.chat_history:  # Ensure there's chat history before displaying
             for chat in st.session_state.chat_history:
-                st.markdown(f"<div style='text-align: right; border-radius: 10px; padding: 10px; margin: 5px 0; background-color: #e0f7fa;'>{chat['question']}</div>", unsafe_allow_html=True)
-                st.markdown(f"<div style='text-align: left; border-radius: 10px; padding: 10px; margin: 5px 0; background-color: #ffe0b2;'>{chat['answer']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: right; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['question']}</div>", unsafe_allow_html=True)
+                st.markdown(f"<div style='text-align: left; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['answer']}</div>", unsafe_allow_html=True)
                 st.markdown("---")
 
     # Display the chat history
