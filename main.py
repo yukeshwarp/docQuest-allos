@@ -1,7 +1,7 @@
 import streamlit as st
 import json
-from utils.pdf_processing import process_pdf_pages
-from utils.llm_interaction import ask_question
+from utils.pdf_processing import process_pdf_pages  # Custom function to process PDF pages
+from utils.llm_interaction import ask_question  # Custom function to interact with LLM
 
 # Initialize session state variables to avoid reloading and reprocessing
 if 'documents' not in st.session_state:
@@ -19,6 +19,8 @@ def handle_question(prompt):
             answer = ask_question(st.session_state.documents, prompt, st.session_state.chat_history)
             # Add the question-answer pair to the chat history
             st.session_state.chat_history.append({"question": prompt, "answer": answer})
+            # Clear the input after handling the question
+            st.session_state.question_input = ""
         except Exception as e:
             st.error(f"Error in processing question: {e}")
 
@@ -83,18 +85,24 @@ if st.session_state.documents:
     # Function to display chat history dynamically
     def display_chat():
         for chat in st.session_state.chat_history:
-            st.markdown(f"<div style='text-align: right; color: #444; background-color: #EEE; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['question']}</div>", unsafe_allow_html=True)
-            st.markdown(f"<div style='text-align: left; color: #444; background-color: #F9F9F9; border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['answer']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: right;border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['question']}</div>", unsafe_allow_html=True)
+            st.markdown(f"<div style='text-align: left;border-radius: 10px; padding: 10px; margin: 5px 0;'>{chat['answer']}</div>", unsafe_allow_html=True)
             st.markdown("---")
 
     # Display the chat history
     display_chat()
 
-    # Input for user questions with better style and handling
+    # Input for user questions with dynamic behavior
     st.markdown("<p style='color: #555;'>Type your question below:</p>", unsafe_allow_html=True)
-    prompt = st.text_input("Ask a question", key="chat_input", placeholder="E.g., What is the summary of page 1?")
+    
+    # Text input for question with an event to handle when user presses Enter
+    st.text_input("Ask a question", 
+                  value=st.session_state.question_input, 
+                  key="question_input", 
+                  placeholder="E.g., What is the summary of page 1?",
+                  on_change=handle_question, 
+                  args=(st.session_state.question_input,))
 
-    if prompt:
-        handle_question(prompt)
-        display_chat()  # Re-display the chat after adding the new entry
-
+    # Re-display the chat after processing the new question
+    if st.session_state.chat_history:
+        display_chat()
