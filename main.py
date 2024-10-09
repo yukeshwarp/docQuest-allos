@@ -11,6 +11,8 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'uploaded_files' not in st.session_state:
     st.session_state.uploaded_files = []
+if 'chat_placeholder' not in st.session_state:
+    st.session_state.chat_placeholder = []
 
 # Function to handle user question
 def handle_question(prompt):
@@ -21,7 +23,22 @@ def handle_question(prompt):
                     st.session_state.documents, prompt, st.session_state.chat_history
                 )
             st.session_state.chat_history.append({"question": prompt, "answer": answer})
-            display_chat()
+
+            # Add new response to the chat dynamically
+            user_message = f"""
+            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right; background-color:#e7f3ff;'> {prompt}</div>
+            """
+            assistant_message = f"""
+            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left; background-color:#f1f0f0;'> {answer}</div>
+            """
+            
+            # Append the new messages to the placeholders
+            user_placeholder = st.empty()
+            assistant_placeholder = st.empty()
+            st.session_state.chat_placeholder.append((user_placeholder, assistant_placeholder))
+            user_placeholder.markdown(user_message, unsafe_allow_html=True)
+            assistant_placeholder.markdown(assistant_message, unsafe_allow_html=True)
+            
         except Exception as e:
             st.error(f"Error processing question: {e}")
 
@@ -30,6 +47,7 @@ def reset_session():
     st.session_state.documents = {}
     st.session_state.chat_history = []
     st.session_state.uploaded_files = []
+    st.session_state.chat_placeholder = []
 
 # Sidebar for file upload and document information
 with st.sidebar:
@@ -104,29 +122,14 @@ st.subheader("Know more about your documents...", divider="orange")
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
 
-    # Placeholder for chat history
-    chat_placeholder = st.container()
-
-    # Function to display chat history dynamically
-    def display_chat():
-        with chat_placeholder:
-            st.write("")  # Clear previous chat
-            for chat in st.session_state.chat_history:
-                user_message = f"""
-                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right;'> {chat['question']}</div>
-                """
-                assistant_message = f"""
-                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left;'> {chat['answer']}</div>
-                """
-                st.markdown(user_message, unsafe_allow_html=True)
-                st.markdown(assistant_message, unsafe_allow_html=True)
-
-    # Display the chat history
-    display_chat()
-
     # Chat input field using st.chat_input
     prompt = st.chat_input("Ask me anything about your documents", key="chat_input")
 
     # Check if the prompt has been updated
     if prompt:
         handle_question(prompt)  # Call the function to handle the question
+
+# Render the previous chat history if any
+if st.session_state.chat_history:
+    for user_placeholder, assistant_placeholder in st.session_state.chat_placeholder:
+        pass  # The chat history is displayed in the placeholders already
