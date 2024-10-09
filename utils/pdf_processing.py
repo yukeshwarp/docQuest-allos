@@ -1,7 +1,7 @@
 import fitz
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from .file_conversion import convert_office_to_pdf
-from llm_interaction import *
+from utils.file_conversion import convert_office_to_pdf
+from utils.llm_interaction import *
 import io
 import base64
 
