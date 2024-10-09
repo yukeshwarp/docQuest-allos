@@ -10,8 +10,7 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 
 # Function to handle user question
-def handle_question():
-    prompt = st.session_state['chat_input']
+def handle_question(prompt):
     if prompt:
         try:
             with st.spinner('Generating answer...'):
@@ -21,8 +20,6 @@ def handle_question():
                 )
             # Add the question-answer pair to the chat history
             st.session_state.chat_history.append({"question": prompt, "answer": answer})
-            # Clear the input field
-            st.session_state['chat_input'] = ""
             # Update the chat display
             display_chat()
         except Exception as e:
@@ -113,4 +110,4 @@ if st.session_state.documents:
 
     # Check if the prompt has been updated
     if prompt:
-        handle_question()  # Call the function to handle the question
+        handle_question(prompt)  # Call the function to handle the question
