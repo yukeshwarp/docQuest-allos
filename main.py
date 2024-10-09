@@ -26,10 +26,10 @@ def handle_question(prompt):
 
             # Add new response to the chat dynamically
             user_message = f"""
-            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right; background-color:#e7f3ff;'> {prompt}</div>
+            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right;'> {prompt}</div>
             """
             assistant_message = f"""
-            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left; background-color:#f1f0f0;'> {answer}</div>
+            <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left;'> {answer}</div>
             """
             
             # Append the new messages to the placeholders
