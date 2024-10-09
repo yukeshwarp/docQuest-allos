@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.pdf_processing import process_pdf_pages
 from utils.llm_interaction import ask_question
 
@@ -51,19 +52,26 @@ with st.sidebar:
     )
 
     if uploaded_files:
-        for uploaded_file in uploaded_files:
-            # Check if the uploaded file is new or different from the previously uploaded files
-            if uploaded_file.name not in st.session_state.documents:
-                st.session_state.documents[uploaded_file.name] = None  # Initialize with None
+        # Use ThreadPoolExecutor to process multiple documents concurrently
+        def process_document(uploaded_file):
+            try:
+                with st.spinner(f'Processing {uploaded_file.name}...'):
+                    document_data = process_pdf_pages(uploaded_file)
+                return uploaded_file.name, document_data
+            except Exception as e:
+                st.error(f"Error processing {uploaded_file.name}: {e}")
+                return uploaded_file.name, None
 
-                try:
-                    with st.spinner(f'Processing {uploaded_file.name}...'):
-                        st.session_state.documents[uploaded_file.name] = process_pdf_pages(uploaded_file)
-                    st.success(f"{uploaded_file.name} processed successfully!")
-                except Exception as e:
-                    st.error(f"Error processing {uploaded_file.name}: {e}")
-            else:
-                st.info(f"{uploaded_file.name} is already uploaded.")
+        # Initialize ThreadPoolExecutor to process documents in parallel
+        with ThreadPoolExecutor() as executor:
+            futures = {executor.submit(process_document, uploaded_file): uploaded_file.name for uploaded_file in uploaded_files}
+            for future in as_completed(futures):
+                doc_name, document_data = future.result()
+                if document_data:  # Check if the document was successfully processed
+                    st.session_state.documents[doc_name] = document_data
+                    st.success(f"{doc_name} processed successfully!")
+                else:
+                    st.error(f"Failed to process {doc_name}")
 
     # Download button for complete analysis
     if st.session_state.documents:
