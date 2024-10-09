@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import requests
-from config import *
+from utils.config import azure_endpoint,api_key,api_version,model
 
 
 def get_image_explanation(base64_image):
