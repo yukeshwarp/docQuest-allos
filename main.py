@@ -16,7 +16,7 @@ if 'uploaded_files' not in st.session_state:
 def handle_question(prompt):
     if prompt:
         try:
-            with st.spinner('Generating answer...'):
+            with st.spinner('Thinking...'):
                 answer = ask_question(
                     st.session_state.documents, prompt, st.session_state.chat_history
                 )
@@ -33,6 +33,7 @@ def reset_session():
 
 # Sidebar for file upload and document information
 with st.sidebar:
+    st.subheader("docQuest")
     st.subheader("📄 Upload Your Documents")
 
     # File uploader
@@ -66,22 +67,24 @@ with st.sidebar:
             progress_bar = st.progress(0)
             total_files = len(new_files)
 
-            # Process files in pairs using ThreadPoolExecutor
-            with ThreadPoolExecutor(max_workers=2) as executor:
-                future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
+            # Spinner while processing documents
+            with st.spinner("Learning your documents..."):
+                # Process files in pairs using ThreadPoolExecutor
+                with ThreadPoolExecutor(max_workers=2) as executor:
+                    future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
 
-                for i, future in enumerate(as_completed(future_to_file)):
-                    uploaded_file = future_to_file[future]
-                    try:
-                        # Get the result from the future
-                        document_data = future.result()
-                        st.session_state.documents[uploaded_file.name] = document_data
-                        st.success(f"{uploaded_file.name} processed successfully!")
-                    except Exception as e:
-                        st.error(f"Error processing {uploaded_file.name}: {e}")
+                    for i, future in enumerate(as_completed(future_to_file)):
+                        uploaded_file = future_to_file[future]
+                        try:
+                            # Get the result from the future
+                            document_data = future.result()
+                            st.session_state.documents[uploaded_file.name] = document_data
+                            st.success(f"{uploaded_file.name} processed successfully!")
+                        except Exception as e:
+                            st.error(f"Error processing {uploaded_file.name}: {e}")
 
-                    # Update progress bar
-                    progress_bar.progress((i + 1) / total_files)
+                        # Update progress bar
+                        progress_bar.progress((i + 1) / total_files)
                     
             progress_text.text("Processing complete.")
             progress_bar.empty()
@@ -97,7 +100,7 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("Know more about your documents...", divider = "orange")
+st.subheader("Know more about your documents...", divider="orange")
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
 
@@ -122,7 +125,7 @@ if st.session_state.documents:
     display_chat()
 
     # Chat input field using st.chat_input
-    prompt = st.chat_input("Let me know what you want to know about your documents...", key="chat_input")
+    prompt = st.chat_input("Ask me anything about your documents", key="chat_input")
 
     # Check if the prompt has been updated
     if prompt:
