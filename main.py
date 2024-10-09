@@ -39,7 +39,7 @@ with st.sidebar:
                 st.write(doc_name)
             with col2:
                 # Remove document context when removed from the uploader
-                if st.button("Remove", key=doc_name):
+                if st.button("X", key=doc_name):
                     del st.session_state.documents[doc_name]
                     st.session_state.uploaded_files.remove(doc_name)
                     st.success(f"{doc_name} removed successfully!")
