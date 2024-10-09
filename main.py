@@ -125,5 +125,3 @@ if st.session_state.documents:
     if prompt:
         handle_question(prompt)  # Call the function to handle the question
 
-    # Display the previous chat history
-    display_chat()
