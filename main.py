@@ -2,6 +2,7 @@ import streamlit as st
 import json
 from utils.pdf_processing import process_pdf_pages
 from utils.llm_interaction import ask_question
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Initialize session state variables
 if 'documents' not in st.session_state:
@@ -25,6 +26,34 @@ def handle_question(prompt):
         except Exception as e:
             st.error(f"Error processing question: {e}")
 
+# Function to process files in parallel
+def process_files_in_parallel(files):
+    document_data = {}
+    with ThreadPoolExecutor() as executor:
+        # Use ThreadPoolExecutor to process files concurrently
+        future_to_file = {executor.submit(process_pdf_pages, f): f for f in files}
+        total_files = len(files)
+        
+        progress_text = st.empty()
+        progress_bar = st.progress(0)
+
+        for i, future in enumerate(as_completed(future_to_file)):
+            file = future_to_file[future]
+            try:
+                result = future.result()  # Get the processed PDF result
+                document_data[file.name] = result
+                st.session_state.documents[file.name] = result
+                st.success(f"{file.name} processed successfully!")
+            except Exception as e:
+                st.error(f"Error processing {file.name}: {e}")
+            
+            # Update progress bar
+            progress_bar.progress((i + 1) / total_files)
+            progress_text.text(f"Processing {i + 1}/{total_files} files complete.")
+        
+        progress_text.text("Processing complete.")
+        progress_bar.empty()
+
 # Sidebar for file upload and document information
 with st.sidebar:
     st.subheader("📄 Upload Your Documents")
@@ -38,33 +67,11 @@ with st.sidebar:
     )
 
     if uploaded_files:
-        new_files = []
-        for uploaded_file in uploaded_files:
-            if uploaded_file.name not in st.session_state.documents:
-                new_files.append(uploaded_file)
-            else:
-                st.info(f"{uploaded_file.name} is already uploaded.")
+        new_files = [f for f in uploaded_files if f.name not in st.session_state.documents]
 
         if new_files:
-            # Use a placeholder to show progress
-            progress_text = st.empty()
-            progress_bar = st.progress(0)
-            total_files = len(new_files)
-
-            for i, uploaded_file in enumerate(new_files):
-                try:
-                    progress_text.text(
-                        f'Processing {uploaded_file.name} ({i+1}/{total_files})...'
-                    )
-                    # Process the document and cache the result
-                    document_data = process_pdf_pages(uploaded_file)
-                    st.session_state.documents[uploaded_file.name] = document_data
-                    st.success(f"{uploaded_file.name} processed successfully!")
-                except Exception as e:
-                    st.error(f"Error processing {uploaded_file.name}: {e}")
-                progress_bar.progress((i + 1) / total_files)
-            progress_text.text("Processing complete.")
-            progress_bar.empty()
+            with st.spinner('Processing documents...'):
+                process_files_in_parallel(new_files)  # Process files in parallel
 
     if st.session_state.documents:
         download_data = json.dumps(st.session_state.documents, indent=4)
@@ -76,7 +83,7 @@ with st.sidebar:
         )
 
 # Main Page - Chat Interface
-st.title("💬 docQuest AI Assistant")
+st.title("💬 docQuest : Document Intelligence")
 
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
