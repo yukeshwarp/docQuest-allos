@@ -1,7 +1,7 @@
 import streamlit as st
 import json
 from utils.pdf_processing import process_pdf_pages
-from utils.chat_interaction import ask_question
+from utils.llm_interaction import ask_question
 
 # Initialize session state variables to avoid reloading and reprocessing
 if 'documents' not in st.session_state:
