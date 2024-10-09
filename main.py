@@ -7,17 +7,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 # Initialize session state variables
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
-if 'uploaded_files' not in st.session_state:
-    st.session_state.uploaded_files = []
 if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
+if 'uploaded_files' not in st.session_state:
+    st.session_state.uploaded_files = []
 
 # Function to handle user question
 def handle_question(prompt):
     if prompt:
         try:
-            # Show a spinner while analyzing the question
-            with st.spinner('Analyzing...'):
+            with st.spinner('Generating answer...'):
                 answer = ask_question(
                     st.session_state.documents, prompt, st.session_state.chat_history
                 )
@@ -26,23 +25,15 @@ def handle_question(prompt):
         except Exception as e:
             st.error(f"Error processing question: {e}")
 
+# Function to reset session data when files are changed
+def reset_session():
+    st.session_state.documents = {}
+    st.session_state.chat_history = []
+    st.session_state.uploaded_files = []
+
 # Sidebar for file upload and document information
 with st.sidebar:
     st.subheader("📄 Upload Your Documents")
-
-    # Display currently uploaded documents
-    if st.session_state.documents:
-        st.write("Current Documents:")
-        for doc_name in st.session_state.documents.keys():
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.write(doc_name)
-            with col2:
-                # Remove document context when removed from the uploader
-                if st.button("X", key=doc_name):
-                    del st.session_state.documents[doc_name]
-                    st.session_state.uploaded_files.remove(doc_name)
-                    st.success(f"{doc_name} removed successfully!")
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -50,42 +41,48 @@ with st.sidebar:
         type=["pdf", "docx", "xlsx", "pptx"],
         accept_multiple_files=True,
         help="Supports PDF, DOCX, XLSX, and PPTX formats.",
-        key="file_uploader"  # Unique key for the file uploader
     )
 
-    # Add new uploaded files to the session state
+    # Check if the uploaded files have changed
+    uploaded_filenames = [file.name for file in uploaded_files] if uploaded_files else []
+    previous_filenames = st.session_state.uploaded_files
+
+    # Detect removed files and reset session state if needed
+    if set(uploaded_filenames) != set(previous_filenames):
+        reset_session()
+        st.session_state.uploaded_files = uploaded_filenames
+
     if uploaded_files:
-        new_files = [uploaded_file for uploaded_file in uploaded_files if uploaded_file.name not in st.session_state.uploaded_files]
+        new_files = []
+        for uploaded_file in uploaded_files:
+            if uploaded_file.name not in st.session_state.documents:
+                new_files.append(uploaded_file)
+            else:
+                st.info(f"{uploaded_file.name} is already uploaded.")
 
-        for new_file in new_files:
-            st.session_state.uploaded_files.append(new_file.name)
-
-        # Process only new files using ThreadPoolExecutor
         if new_files:
             # Use a placeholder to show progress
             progress_text = st.empty()
             progress_bar = st.progress(0)
             total_files = len(new_files)
 
-            # Process only new files using ThreadPoolExecutor
+            # Process files in pairs using ThreadPoolExecutor
             with ThreadPoolExecutor(max_workers=2) as executor:
                 future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
-                
-                # Show a spinner while processing the files
-                with st.spinner("Processing your documents..."):
-                    for i, future in enumerate(as_completed(future_to_file)):
-                        uploaded_file = future_to_file[future]
-                        try:
-                            # Get the result from the future
-                            document_data = future.result()
-                            st.session_state.documents[uploaded_file.name] = document_data
-                            st.success(f"{uploaded_file.name} processed successfully!")
-                        except Exception as e:
-                            st.error(f"Error processing {uploaded_file.name}: {e}")
 
-                        # Update progress bar
-                        progress_bar.progress((i + 1) / total_files)
+                for i, future in enumerate(as_completed(future_to_file)):
+                    uploaded_file = future_to_file[future]
+                    try:
+                        # Get the result from the future
+                        document_data = future.result()
+                        st.session_state.documents[uploaded_file.name] = document_data
+                        st.success(f"{uploaded_file.name} processed successfully!")
+                    except Exception as e:
+                        st.error(f"Error processing {uploaded_file.name}: {e}")
 
+                    # Update progress bar
+                    progress_bar.progress((i + 1) / total_files)
+                    
             progress_text.text("Processing complete.")
             progress_bar.empty()
 
@@ -100,8 +97,7 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("Know more about your documents...", divider="orange")
-
+st.subheader("Know more about your documents...", divider = "orange")
 if st.session_state.documents:
     st.subheader("Ask me anything about your documents!")
 
