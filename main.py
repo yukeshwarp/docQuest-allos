@@ -90,13 +90,11 @@ if st.session_state.documents:
             st.write("")  # Clear previous chat
             for chat in st.session_state.chat_history:
                 user_message = f"""
-                <div style='background-color:#D3EBCD; padding:10px; border-radius:10px; margin:5px 0; text-align:right;'>
-                    <strong>User:</strong> {chat['question']}
+                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:right;'> {chat['question']}
                 </div>
                 """
                 assistant_message = f"""
-                <div style='background-color:#FFE699; padding:10px; border-radius:10px; margin:5px 0; text-align:left;'>
-                    <strong>Assistant:</strong> {chat['answer']}
+                <div style='padding:10px; border-radius:10px; margin:5px 0; text-align:left;'> {chat['answer']}
                 </div>
                 """
                 st.markdown(user_message, unsafe_allow_html=True)
