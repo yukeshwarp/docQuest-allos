@@ -1,15 +1,22 @@
 import os
 from dotenv import load_dotenv
 import requests
-from utils.config import azure_endpoint,api_key,api_version,model
+from utils.config import azure_endpoint, api_key, api_version, model
+import logging
 
+# Set up logging
+logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
-def get_image_explanation(base64_image):
-    """Get image explanation from OpenAI API."""
-    headers = {
+def get_headers():
+    """Generate common headers for the API requests."""
+    return {
         "Content-Type": "application/json",
         "api-key": api_key
     }
+
+def get_image_explanation(base64_image):
+    """Get image explanation from OpenAI API."""
+    headers = get_headers()
     data = {
         "model": model,
         "messages": [
@@ -28,96 +35,104 @@ def get_image_explanation(base64_image):
         "temperature": 0.7
     }
 
-    response = requests.post(
-        f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-        headers=headers,
-        json=data
-    )
-    if response.status_code == 200:
-        explanation = response.json()['choices'][0]['message']['content']
-        return explanation
-    else:
-        return f"Error: {response.status_code}, {response.text}"
+    try:
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10  # Add timeout for API request
+        )
+        response.raise_for_status()  # Raise HTTPError for bad responses
+        return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
+    
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error requesting image explanation: {e}")
+        return f"Error: Unable to fetch image explanation due to network issues or API error."
 
 def summarize_page(page_text, previous_summary, page_number):
     """Summarize a single page's text using LLM."""
+    headers = get_headers()
     prompt_message = (
         f"Summarize the following page (Page {page_number}) with context from the previous summary.\n\n"
         f"Previous summary: {previous_summary}\n\n"
         f"Text:\n{page_text}\n"
     )
 
-    response = requests.post(
-        f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-        headers={
-            "Content-Type": "application/json",
-            "api-key": api_key
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": "You are an assistant that summarizes text with context."},
-                {"role": "user", "content": prompt_message}
-            ],
-            "temperature": 0.0
-        }
-    )
+    data = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an assistant that summarizes text with context."},
+            {"role": "user", "content": prompt_message}
+        ],
+        "temperature": 0.0
+    }
+
+    try:
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10  # Add timeout for API request
+        )
+        response.raise_for_status()  # Raise HTTPError for bad responses
+        return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
     
-    if response.status_code == 200:
-        summary = response.json()['choices'][0]['message']['content'].strip()
-        return summary
-    else:
-        return f"Error: {response.status_code}, {response.text}"
-    
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error summarizing page {page_number}: {e}")
+        return f"Error: Unable to summarize page {page_number} due to network issues or API error."
+
 def ask_question(documents, question, chat_history):
     """Answer a question based on the summarized content of multiple PDFs and chat history."""
     combined_content = ""
     
+    # Combine document summaries and image analyses
     for doc_name, doc_data in documents.items():
         for page in doc_data["pages"]:
-            # Combine text summaries and image analysis
             page_summary = page['text_summary']
-            if page["image_analysis"]:
-                image_explanation = "\n".join(
-                    f"Page {img['page_number']}: {img['explanation']}" for img in page["image_analysis"]
-                )
-            else:
-                image_explanation = "No image analysis."
+            image_explanation = "\n".join(
+                f"Page {img['page_number']}: {img['explanation']}" for img in page["image_analysis"]
+            ) if page["image_analysis"] else "No image analysis."
             
-            combined_content += f"Page {page['page_number']}\nSummary: {page_summary}\nImage Analysis: {image_explanation}\n\n"
+            combined_content += (
+                f"Page {page['page_number']}\n"
+                f"Summary: {page_summary}\n"
+                f"Image Analysis: {image_explanation}\n\n"
+            )
 
     # Format the chat history into a conversation format
-    conversation_history = ""
-    for chat in chat_history:
-        user_message = f"User: {chat['question']}\n"
-        assistant_response = f"Assistant: {chat['answer']}\n"
-        conversation_history += user_message + assistant_response
+    conversation_history = "".join(
+        f"User: {chat['question']}\nAssistant: {chat['answer']}\n" for chat in chat_history
+    )
 
-    # Use the combined content for LLM prompt
+    # Prepare the prompt message
     prompt_message = (
         f"Now, using the following document analysis as context, answer the question.\n\n"
         f"Context:\n{combined_content}\n"
-        f"Question: {question}"
-        f"Previous responses over the current chat session:{conversation_history}\n"
+        f"Question: {question}\n"
+        f"Previous responses over the current chat session: {conversation_history}"
     )
 
-    response = requests.post(
-        f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-        headers={
-            "Content-Type": "application/json",
-            "api-key": api_key
-        },
-        json={
-            "model": model,
-            "messages": [
-                {"role": "system", "content": "You are an assistant that answers questions based on provided knowledge base."},
-                {"role": "user", "content": prompt_message}
-            ],
-            "temperature": 0.0
-        }
-    )
+    headers = get_headers()
 
-    if response.status_code == 200:
-        return response.json()['choices'][0]['message']['content'].strip()
-    else:
-        raise Exception(f"Error: {response.status_code}, {response.text}")
+    data = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an assistant that answers questions based on provided knowledge base."},
+            {"role": "user", "content": prompt_message}
+        ],
+        "temperature": 0.0
+    }
+
+    try:
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10  # Add timeout for API request
+        )
+        response.raise_for_status()  # Raise HTTPError for bad responses
+        return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No answer provided.").strip()
+    
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error answering question '{question}': {e}")
+        raise Exception(f"Unable to answer the question due to network issues or API error.")
