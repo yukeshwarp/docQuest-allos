@@ -53,15 +53,16 @@ def summarize_page(page_text, previous_summary, page_number):
     """Summarize a single page's text using LLM."""
     headers = get_headers()
     prompt_message = (
-        f"Summarize the following page (Page {page_number}) with context from the previous summary.\n\n"
-        f"Previous summary: {previous_summary}\n\n"
-        f"Text:\n{page_text}\n"
+        f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary to make them concise and well-structured. 
+        Do not add any new information or make assumptions. Keep the meaning accurate and the language clear."
+        f"Previous page summary: {previous_summary}\n\n"
+        f"Current page content:\n{page_text}\n"
     )
 
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an assistant that summarizes text with context."},
+            {"role": "system", "content": "You are an Archivist who reads the given knowledge and maintains documents, records, or information in a systematic and accurate way."},
             {"role": "user", "content": prompt_message}
         ],
         "temperature": 0.0
@@ -78,7 +79,7 @@ def summarize_page(page_text, previous_summary, page_number):
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
     
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error summarizing page {page_number}: {e}")
+        logging.error(f"Error Analysing page {page_number}: {e}")
         return f"Error: Unable to summarize page {page_number} due to network issues or API error."
 
 def ask_question(documents, question, chat_history):
@@ -106,14 +107,28 @@ def ask_question(documents, question, chat_history):
 
     # Prepare the prompt message
     prompt_message = (
-        f"Use the context as knowledge base and answer the question in a proper redable format: {question}\n\Context:\n{combined_content}\nPrevious responses over the current chat session: {conversation_history}")
+        f"""
+        You are given the following content:
+
+        ---
+        {content}
+        ---
+        Previous responses over the current chat session: {conversation_history}
+
+        Answer the following question in based only on the information provided in the content above with all the factual data. 
+        Answer the question in a proper readable format.
+        If the information is not present or insufficient to answer the question accurately, respond with "The information provided is not enough to answer this question."
+
+        Question:{question}
+        """
+        )
 
     headers = get_headers()
 
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an assistant that answers questions based on provided knowledge base."},
+            {"role": "system", "content": "You are an assistant that answers questions based only on provided knowledge base."},
             {"role": "user", "content": prompt_message}
         ],
         "temperature": 0.0
