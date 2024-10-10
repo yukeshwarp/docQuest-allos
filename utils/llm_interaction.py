@@ -24,7 +24,7 @@ def get_image_explanation(base64_image):
             {"role": "user", "content": [
                 {
                     "type": "text",
-                    "text": "Explain the content of this image in a single, coherent paragraph. The explanation should be concise and semantically meaningful."
+                    "text": "Explain the content of this image in a single, coherent paragraph. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be acuurate in your explaination."
                 },
                 {
                     "type": "image_url",
@@ -32,7 +32,7 @@ def get_image_explanation(base64_image):
                 }
             ]}
         ],
-        "temperature": 0.1
+        "temperature": 0.0
     }
 
     try:
@@ -65,7 +65,7 @@ def summarize_page(page_text, previous_summary, page_number):
             {"role": "system", "content": "You are an Archivist who reads the given knowledge and maintains documents, records, or information in a systematic and accurate way."},
             {"role": "user", "content": prompt_message}
         ],
-        "temperature": 0.1
+        "temperature": 0.0
     }
 
     try:
@@ -131,7 +131,7 @@ def ask_question(documents, question, chat_history):
             {"role": "system", "content": "You are an assistant that answers questions based only on provided knowledge base."},
             {"role": "user", "content": prompt_message}
         ],
-        "temperature": 0.1
+        "temperature": 0.0
     }
 
     try:
