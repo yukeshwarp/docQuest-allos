@@ -1,7 +1,7 @@
 import fitz
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from utils.file_conversion import convert_office_to_pdf
-from utils.llm_interaction import *
+from utils.llm_interaction import summarize_page, get_image_explanation
 import io
 import base64
 import logging
@@ -121,5 +121,4 @@ def process_pdf_pages(uploaded_file):
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
-
 
