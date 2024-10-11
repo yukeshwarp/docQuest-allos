@@ -63,8 +63,8 @@ def process_page_batch(pdf_document, batch, ocr_text_threshold=0.4):
             # Store the extracted data, including the text
             batch_data.append({
                 "page_number": page_number + 1,
-                "text_summary": summary,
-                "full_text": text,  # Adding full text to batch data
+                "full_text": text,# Adding full text to batch data
+                "text_summary": summary,  
                 "image_analysis": image_analysis
             })
 
@@ -72,8 +72,8 @@ def process_page_batch(pdf_document, batch, ocr_text_threshold=0.4):
             logging.error(f"Error processing page {page_number + 1}: {e}")
             batch_data.append({
                 "page_number": page_number + 1,
-                "text_summary": "Error in processing this page",
                 "full_text": "",  # Include empty text in case of an error
+                "text_summary": "Error in processing this page",
                 "image_analysis": []
             })
 
