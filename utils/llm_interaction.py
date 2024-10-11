@@ -53,9 +53,9 @@ def summarize_page(page_text, previous_summary, page_number):
     """Summarize a single page's text using LLM."""
     headers = get_headers()
     prompt_message = (
-        f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary to make them concise and well-structured.
-        Maintain proper listing and referencing of the contents if present.
-        Do not add any new information or make assumptions. Keep the meaning accurate and the language clear."
+        f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary to make them concise and well-structured."
+        f"Maintain proper listing and referencing of the contents if present."
+        f"Do not add any new information or make assumptions. Keep the meaning accurate and the language clear."
         f"Previous page summary: {previous_summary}\n\n"
         f"Current page content:\n{page_text}\n"
     )
