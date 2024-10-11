@@ -39,7 +39,7 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.4):
     return None
 
 def process_page_batch(pdf_document, batch, ocr_text_threshold=0.4):
-    """Process a batch of PDF pages and extract summaries and image analysis."""
+    """Process a batch of PDF pages and extract summaries, full text, and image analysis."""
     previous_summary = ""
     batch_data = []
 
@@ -60,10 +60,11 @@ def process_page_batch(pdf_document, batch, ocr_text_threshold=0.4):
                 image_explanation = get_image_explanation(image_data)
                 image_analysis.append({"page_number": page_number + 1, "explanation": image_explanation})
 
-            # Store the extracted data
+            # Store the extracted data, including the text
             batch_data.append({
                 "page_number": page_number + 1,
                 "text_summary": summary,
+                "full_text": text,  # Adding full text to batch data
                 "image_analysis": image_analysis
             })
 
@@ -72,10 +73,12 @@ def process_page_batch(pdf_document, batch, ocr_text_threshold=0.4):
             batch_data.append({
                 "page_number": page_number + 1,
                 "text_summary": "Error in processing this page",
+                "full_text": "",  # Include empty text in case of an error
                 "image_analysis": []
             })
 
     return batch_data
+
 
 def process_pdf_pages(uploaded_file):
     """Process the PDF pages in batches and extract summaries and image analysis."""
