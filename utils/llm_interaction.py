@@ -84,19 +84,22 @@ def summarize_page(page_text, previous_summary, page_number):
         return f"Error: Unable to summarize page {page_number} due to network issues or API error."
 
 def ask_question(documents, question, chat_history):
-    """Answer a question based on the summarized content of multiple PDFs and chat history."""
+    """Answer a question based on the full text, summarized content of multiple PDFs, and chat history."""
     combined_content = ""
-    
-    # Combine document summaries and image analyses
+
+    # Combine document full texts, summaries, and image analyses
     for doc_name, doc_data in documents.items():
         for page in doc_data["pages"]:
             page_summary = page['text_summary']
+            page_full_text = page.get('full_text', 'No text available')  # Include full text
+            
             image_explanation = "\n".join(
                 f"Page {img['page_number']}: {img['explanation']}" for img in page["image_analysis"]
             ) if page["image_analysis"] else "No image analysis."
-            
+
             combined_content += (
                 f"Page {page['page_number']}\n"
+                f"Full Text: {page_full_text}\n"
                 f"Summary: {page_summary}\n"
                 f"Image Analysis: {image_explanation}\n\n"
             )
@@ -112,17 +115,17 @@ def ask_question(documents, question, chat_history):
         You are given the following content:
 
         ---
-        {content}
+        {combined_content}
         ---
         Previous responses over the current chat session: {conversation_history}
 
-        Answer the following question in based only on the information provided in the content above with all the factual data. 
+        Answer the following question based only on the information provided in the content above with all the factual data. 
         Answer the question in a proper readable format.
         If the information is not present or insufficient to answer the question accurately, respond with "The information provided is not enough to answer this question."
 
-        Question:{question}
+        Question: {question}
         """
-        )
+    )
 
     headers = get_headers()
 
@@ -144,7 +147,7 @@ def ask_question(documents, question, chat_history):
         )
         response.raise_for_status()  # Raise HTTPError for bad responses
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No answer provided.").strip()
-    
+
     except requests.exceptions.RequestException as e:
         logging.error(f"Error answering question '{question}': {e}")
         raise Exception(f"Unable to answer the question due to network issues or API error.")
