@@ -119,8 +119,8 @@ def ask_question(documents, question, chat_history):
         ---
         Previous responses over the current chat session: {conversation_history}
 
-        Based strictly on the information provided in the content above, answer the following question in a clear, detailed, and coherent manner. 
-        Ensure the response is accurate, well-structured, and focuses solely on the facts within the provided content, without adding any external information or assumptions.
+        Answer the following question based only on the information provided in the content above with all the factual data. 
+        Answer the question in a proper readable format."
 
         Question: {question}
         """
