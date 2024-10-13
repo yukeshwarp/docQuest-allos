@@ -173,8 +173,7 @@ def ask_question(documents, question, chat_history):
     Answer the following question based **strictly and only** on the factual information provided in the content above. 
     Carefully verify all details from the content and do not generate any information that is not explicitly mentioned in it.
     If the answer cannot be determined from the content, explicitly state that the information is not available.
-
-    **Ensure the response is accurate, concise, and clearly formatted for readability.**
+    Ensure the response is clearly formatted for readability.
     
     At the end of the response, include references to the document name and page number(s) where the information was found.
 
