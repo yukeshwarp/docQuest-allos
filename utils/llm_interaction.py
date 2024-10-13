@@ -49,13 +49,63 @@ def get_image_explanation(base64_image):
         logging.error(f"Error requesting image explanation: {e}")
         return f"Error: Unable to fetch image explanation due to network issues or API error."
 
-def summarize_page(page_text, previous_summary, page_number):
-    """Summarize a single page's text using LLM."""
+def generate_system_prompt(document_content):
+    """
+    Generate a system prompt based on the expertise, tone, and voice needed 
+    to summarize the document content.
+    """
     headers = get_headers()
+    data = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
+            {"role": "user", "content": f"""
+            Analyze the following document content and determine the expertise required to summarize it accurately.
+            Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
+            to summarize this document:
+
+            Content: {document_content}
+
+            Output the system prompt in this format:
+
+            1. Expertise: (Field expertise required, such as law, medical, technical, etc.)
+            2. Style: (Professional, casual, instructional, etc.)
+            3. Tone: (Formal, friendly, neutral, etc.)
+            4. Persona: (Example personas like archivist, journalist, historian, etc.)
+            """}
+        ],
+        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
+    }
+
+    try:
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10
+        )
+        response.raise_for_status()
+        prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
+        return prompt_response.strip()
+
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error generating system prompt: {e}")
+        return f"Error: Unable to generate system prompt due to network issues or API error."
+
+
+def summarize_page(page_text, previous_summary, page_number, system_prompt):
+    """
+    Summarize a single page's text using LLM, and generate a system prompt based on the document content.
+    """
+    headers = get_headers()
+    
+    # Generate the system prompt based on the document content
+    system_prompt = system_prompt
+    
     prompt_message = (
-        f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary to make them concise and well-structured."
-        f"Maintain proper listing and referencing of the contents if present."
-        f"Do not add any new information or make assumptions. Keep the meaning accurate and the language clear."
+        f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary "
+        f"to make them concise and well-structured. Maintain proper listing and referencing of the contents if present."
+        f"Do not add any new information or make assumptions. Keep the meaning accurate and the language clear.\n\n"
         f"Previous page summary: {previous_summary}\n\n"
         f"Current page content:\n{page_text}\n"
     )
@@ -63,18 +113,7 @@ def summarize_page(page_text, previous_summary, page_number):
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": f"""
-        You are an Archivist responsible for reading and maintaining documents, records, or information in a systematic and highly accurate manner.
-
-        Your task is to:
-        1. **Carefully analyze** the given content, ensuring you capture the most relevant, factual, and concise information.
-        2. **Record and summarize** the document contents in a clear, structured, and well-organized format.
-        3. **Ensure accuracy** in all the details you extract, avoiding assumptions, speculative information, or any hallucination.
-        4. **Maintain references** to document names, sections, and page numbers for easy retrieval of information.
-        5. **Prioritize clarity and brevity**, while ensuring that no key information is omitted from the summary.
-
-        If any part of the document is unclear or incomplete, clearly indicate this in the records.
-    """},
+            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt_message}
         ],
         "temperature": 0.0
@@ -85,14 +124,15 @@ def summarize_page(page_text, previous_summary, page_number):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10  # Add timeout for API request
+            timeout=10
         )
-        response.raise_for_status()  # Raise HTTPError for bad responses
+        response.raise_for_status()
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
     
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error Analysing page {page_number}: {e}")
+        logging.error(f"Error summarizing page {page_number}: {e}")
         return f"Error: Unable to summarize page {page_number} due to network issues or API error."
+
 
 def ask_question(documents, question, chat_history):
     """Answer a question based on the full text, summarized content of multiple PDFs, and chat history."""
