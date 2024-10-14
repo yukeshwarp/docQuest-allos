@@ -67,12 +67,9 @@ class SystemPromptOutput(BaseModel):
     tone: str
     voice: str
 
-def generate_system_prompt(document_content: str) -> Union[Dict[str, str], str]:
-    """
-    Generate a system prompt based on the expertise, tone, and voice needed 
-    to summarize the document content.
-    """
-    headers = get_headers()  # Assuming you have a function to get headers
+# Function to generate system prompt
+def generate_system_prompt(document_content: str) -> Union[str, str]:
+    headers = get_headers()
     data = {
         "model": model,
         "messages": [
@@ -106,20 +103,13 @@ def generate_system_prompt(document_content: str) -> Union[Dict[str, str], str]:
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10  # Add timeout for API request
+            timeout=10
         )
-        response.raise_for_status()  # Raise HTTPError for bad responses
+        response.raise_for_status()
         
-        # Extract the output
-        output_json = response.json().get('choices', [{}])[0].get('message', {}).get('content', "{}")
-        
-        # Parse the output as a dictionary
-        system_prompt_output = json.loads(output_json)  # Changed from Pydantic model to dict
-        return system_prompt_output
+        output_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
+        return output_text
     
-    except json.JSONDecodeError as e:
-        logging.error(f"Error decoding JSON response: {e}")
-        return f"Error: Unable to parse the system prompt output. JSON decoding error: {e}"
     except requests.exceptions.RequestException as e:
         logging.error(f"Error requesting system prompt generation: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
