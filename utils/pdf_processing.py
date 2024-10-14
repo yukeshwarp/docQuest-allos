@@ -96,7 +96,7 @@ def process_pdf_pages(uploaded_file):
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
-        full_text = ""
+        full_textr = ""
         for page_numberr in range(total_pages):
             pager = pdf_document.load_page(page_numberr)
             full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
