@@ -3,6 +3,8 @@ import json
 from utils.pdf_processing import process_pdf_pages
 from utils.llm_interaction import ask_question
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import logging
+import io
 
 # Initialize session state variables
 if 'documents' not in st.session_state:
