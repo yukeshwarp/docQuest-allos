@@ -3,10 +3,7 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
-from pydantic import BaseModel, Field, ValidationError
-from openai import AzureOpenAI
-import json
-from typing import Union, Dict, Any
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -52,88 +49,48 @@ def get_image_explanation(base64_image):
         logging.error(f"Error requesting image explanation: {e}")
         return f"Error: Unable to fetch image explanation due to network issues or API error."
 
-# Define the Pydantic model for structured output
-from typing import Dict, Any
-import os
-import requests
-from pydantic import BaseModel, ValidationError
-
-# Assuming AzureOpenAI client is already set up as in your example
-client = AzureOpenAI(
-    azure_endpoint="https://gpt-4omniwithimages.openai.azure.com/", 
-    api_key="6e98566acaf24997baa39039b6e6d183",  
-    api_version="2024-02-01"
-)
-
-class SystemPromptOutput(BaseModel):
-    document: str
-    domain: str
-    subject: str
-    expertise: str
-    qualification: str
-    style: str
-    tone: str
-    voice: str
-
-import json
-import logging
-from typing import Union, Dict, Any
-
-def generate_system_prompt(document_content: str) -> Union[Dict[str, Any], str]:
+def generate_system_prompt(document_content):
     """
     Generate a system prompt based on the expertise, tone, and voice needed 
     to summarize the document content.
     """
-    messages = [
-        {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
-        {"role": "user", "content": f"""
-        Analyze the following document content and determine the expertise required to summarize it accurately.
-        Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
-        to summarize this document:
+    headers = get_headers()
+    data = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
+            {"role": "user", "content": f"""
+            Analyze the following document content and determine the expertise required to summarize it accurately.
+            Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
+            to summarize this document:
 
-        Content: {document_content}
+            Content: {document_content}
 
-        Output the system prompt in this format as a JSON object:
+            Output the system prompt in this format:
 
-        {{
-            "document": "example_document",
-            "domain": "Aerospace engineering",
-            "subject": "aerodynamics",
-            "expertise": "technical",
-            "qualification": "Master in Aerospace engineering",
-            "style": "Professional",
-            "tone": "Formal",
-            "voice": "neutral"
-        }}
-        """}
-    ]
+            1. Expertise: (Field expertise required, such as law, medical, technical, etc.)
+            2. Style: (Professional, casual, instructional, etc.)
+            3. Tone: (Formal, friendly, neutral, etc.)
+            4. Persona: (Example personas like archivist, journalist, historian, etc.)
+            """}
+        ],
+        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
+    }
 
     try:
-        response = client.chat.completions.create(
-            model=model,  # Replace with your model deployment name
-            messages=messages
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10
         )
+        response.raise_for_status()
+        prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
+        return prompt_response.strip()
 
-        # Extract the output text from the response
-        output_text = response.choices[0].message.content.strip()  # Adjust according to your API response structure
-        
-        # Parse the output into details
-        details = {}
-        for line in output_text.split("\n"):
-            if ":" in line:
-                key, value = line.split(":", 1)
-                details[key.strip().lower().replace(" ", "_")] = value.strip()
-        
-        return details
-
-    except IndexError as e:
-        logging.error(f"Error parsing system prompt output: {e}")
-        return f"Error: Unable to parse the system prompt output. Validation error: {e}"
-    except Exception as e:
+    except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
-
-
 
 
 def summarize_page(page_text, previous_summary, page_number, system_prompt):
