@@ -24,7 +24,7 @@ def get_image_explanation(base64_image):
             {"role": "user", "content": [
                 {
                     "type": "text",
-                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be acuurate in your explaination."
+                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be accurate in your explanation."
                 },
                 {
                     "type": "image_url",
@@ -64,9 +64,9 @@ def generate_system_prompt(document_content):
             Identify the following from the document content :
             1. The domain based on the content of the document
             2. The subject matter based on the content of the document
-            3. The experience and expertise needed to analyse this document
+            3. The experience and expertise needed to analyze this document
             4. The typical educational qualification needed to analyze the document
-            5. The style,tone and voice based on the content of the document.
+            5. The style, tone, and voice based on the content of the document.
 
             Content: {document_content}
             """}
@@ -74,16 +74,16 @@ def generate_system_prompt(document_content):
         "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
     }
 
-   try:
-       response = requests.post(
-           f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-           headers=headers,
-           json=data,
-           timeout=10
-       )
-       response.raise_for_status()
-       extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
-       return extracted_text
+    try:
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10
+        )
+        response.raise_for_status()
+        extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
+        return extracted_text
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
