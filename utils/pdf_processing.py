@@ -6,7 +6,8 @@ import io
 import base64
 import logging
 from pydantic import BaseModel, Field, ValidationError
-from typing import Union
+import json
+from typing import Union, Dict, Any
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -118,22 +119,18 @@ def process_pdf_pages(uploaded_file):
         # Generate the system prompt using the modified function
         system_prompt_data = generate_system_prompt(document_content)
 
-        # Ensure the system prompt is valid
-        if isinstance(system_prompt_data, SystemPromptOutput):
-            document_name = system_prompt_data.document
-            domain = system_prompt_data.domain
-            subject = system_prompt_data.subject
-            expertise = system_prompt_data.expertise
-            qualification = system_prompt_data.qualification
-            style = system_prompt_data.style
-            tone = system_prompt_data.tone
-            voice = system_prompt_data.voice
-
-            # Create the system prompt using the variables
+        # Check if the system prompt data is valid
+        if isinstance(system_prompt_data, dict):  # Expecting a dictionary from the extraction
+            # Create the system prompt using the extracted data
             system_prompt = {
                 "role": "system",
-                "content": f"You are an expert in {domain} {subject} with an expertise in {expertise} and qualification of {qualification}. "
-                           f"Your response should be {style}, {tone}, and in a {voice} voice."
+                "content": (
+                    f"You are an expert in {system_prompt_data.get('domain')} "
+                    f"{system_prompt_data.get('subject')} with an expertise in {system_prompt_data.get('expertise')} "
+                    f"and qualification of {system_prompt_data.get('qualification')}. "
+                    f"Your response should be {system_prompt_data.get('style')}, {system_prompt_data.get('tone')}, "
+                    f"and in a {system_prompt_data.get('voice')} voice."
+                )
             }
         else:
             logging.error("System prompt data is invalid.")
@@ -167,3 +164,4 @@ def process_pdf_pages(uploaded_file):
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
+
