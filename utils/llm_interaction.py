@@ -3,9 +3,7 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
-from pydantic import BaseModel, Field, ValidationError
-from typing import Union
-import json
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -51,54 +49,31 @@ def get_image_explanation(base64_image):
         logging.error(f"Error requesting image explanation: {e}")
         return f"Error: Unable to fetch image explanation due to network issues or API error."
 
-# Define the Pydantic model for structured output
-from typing import Dict, Any
-import os
-import requests
-from pydantic import BaseModel, ValidationError
-# Define the Pydantic model for structured output
-class SystemPromptOutput(BaseModel):
-    document: str
-    domain: str
-    subject: str
-    expertise: str
-    qualification: str
-    style: str
-    tone: str
-    voice: str
-
-# Function to generate system prompt
-# Function to generate system prompt
-def generate_system_prompt(document_content: str) -> Union[dict, str]:
+def generate_system_prompt(document_content):
+    """
+    Generate a system prompt based on the expertise, tone, and voice needed 
+    to summarize the document content.
+    """
     headers = get_headers()
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
+            {"role": "system", "content": "You are an expert in analyzing documents."},
             {"role": "user", "content": f"""
-            Analyze the following document content and determine the expertise required to summarize it accurately.
-            Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
-            to summarize this document:
+            Analyze the following document content and identify the following :
+            1. document name as ID,
+            2. The domain based on the content of the document
+            3. The subject matter based on the content of the document
+            4. The experience and expertise needed to analyse this document
+            5. The typical educational qualification needed to analyze the document
+            6. The style,tone and voice based on the content of the document.
 
             Content: {document_content}
-
-            Output the system prompt in this format as a JSON object:
-
-            {{
-                "document": "example_document",
-                "domain": "Aerospace engineering",
-                "subject": "aerodynamics",
-                "expertise": "technical",
-                "qualification": "Master in Aerospace engineering",
-                "style": "Professional",
-                "tone": "Formal",
-                "voice": "neutral"
-            }}
             """}
         ],
-        "temperature": 0.0
+        "temperature": 0.5
     }
-
+    
     try:
         response = requests.post(
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
@@ -107,23 +82,12 @@ def generate_system_prompt(document_content: str) -> Union[dict, str]:
             timeout=10
         )
         response.raise_for_status()
+        prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
+        return prompt_response.strip()
 
-        extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
-
-        # Process the extracted text into a dictionary
-        details = {}
-        for line in extracted_text.split("\n"):
-            if ":" in line:
-                key, value = line.split(":", 1)
-                details[key.strip().lower().replace(" ", "_")] = value.strip()
-        
-        return details
-    
     except requests.exceptions.RequestException as e:
-        logging.error(f"Error requesting system prompt generation: {e}")
+        logging.error(f"Error generating system prompt: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
-
-
 
 
 def summarize_page(page_text, previous_summary, page_number, system_prompt):
