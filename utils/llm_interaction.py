@@ -68,7 +68,8 @@ class SystemPromptOutput(BaseModel):
     voice: str
 
 # Function to generate system prompt
-def generate_system_prompt(document_content: str) -> Union[str, str]:
+# Function to generate system prompt
+def generate_system_prompt(document_content: str) -> Union[dict, str]:
     headers = get_headers()
     data = {
         "model": model,
@@ -106,9 +107,17 @@ def generate_system_prompt(document_content: str) -> Union[str, str]:
             timeout=10
         )
         response.raise_for_status()
+
+        extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
+
+        # Process the extracted text into a dictionary
+        details = {}
+        for line in extracted_text.split("\n"):
+            if ":" in line:
+                key, value = line.split(":", 1)
+                details[key.strip().lower().replace(" ", "_")] = value.strip()
         
-        output_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
-        return output_text
+        return details
     
     except requests.exceptions.RequestException as e:
         logging.error(f"Error requesting system prompt generation: {e}")
