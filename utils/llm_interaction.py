@@ -58,22 +58,25 @@ def generate_system_prompt(document_content):
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an expert in analyzing documents."},
+            {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
             {"role": "user", "content": f"""
-            Analyze the following document content and identify the following :
-            1. document name as ID,
-            2. The domain based on the content of the document
-            3. The subject matter based on the content of the document
-            4. The experience and expertise needed to analyse this document
-            5. The typical educational qualification needed to analyze the document
-            6. The style,tone and voice based on the content of the document.
+            Analyze the following document content and determine the expertise required to summarize it accurately.
+            Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
+            to summarize this document:
 
             Content: {document_content}
+
+            Output the system prompt in this format:
+
+            1. Expertise: (Field expertise required, such as law, medical, technical, etc.)
+            2. Style: (Professional, casual, instructional, etc.)
+            3. Tone: (Formal, friendly, neutral, etc.)
+            4. Persona: (Example personas like archivist, journalist, historian, etc.)
             """}
         ],
-        "temperature": 0.5
+        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
     }
-    
+
     try:
         response = requests.post(
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
