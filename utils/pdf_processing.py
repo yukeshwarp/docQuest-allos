@@ -5,22 +5,9 @@ from utils.llm_interaction import summarize_page, get_image_explanation, generat
 import io
 import base64
 import logging
-from pydantic import BaseModel, Field, ValidationError
-import json
-from typing import Union, Dict, Any
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
-
-class SystemPromptOutput(BaseModel):
-    document: str = Field(..., description="The name of the document")
-    domain: str = Field(..., description="The domain or field of the document")
-    subject: str = Field(..., description="The subject of the document")
-    expertise: str = Field(..., description="The expertise level required for understanding the document")
-    qualification: str = Field(..., description="The qualification required to understand or summarize the document")
-    style: str = Field(..., description="The style of the prompt (e.g., professional, casual)")
-    tone: str = Field(..., description="The tone of the summary (e.g., formal, neutral)")
-    voice: str = Field(..., description="The voice of the prompt (e.g., first-person, third-person)")
 
 def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
@@ -76,7 +63,7 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             # Store the extracted data, including the text
             batch_data.append({
                 "page_number": page_number + 1,
-                "full_text": text,  # Adding full text to batch data
+                "full_text": text,# Adding full text to batch data
                 "text_summary": summary,  
                 "image_analysis": image_analysis
             })
@@ -91,6 +78,7 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             })
 
     return batch_data
+
 
 def process_pdf_pages(uploaded_file):
     """Process the PDF pages in batches and extract summaries and image analysis."""
@@ -108,37 +96,7 @@ def process_pdf_pages(uploaded_file):
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
-
-        # Prepare document content for system prompt generation
-        # Use the first 3 pages for system prompt generation
-        document_content = ""
-        for page_num in range(min(3, total_pages)):
-            page = pdf_document.load_page(page_num)
-            document_content += page.get_text("text")
-        
-        # Generate the system prompt using the modified function
-        system_prompt_data = generate_system_prompt(document_content)
-
-        # Check if the system prompt data is valid
-        if isinstance(system_prompt_data, dict):  # Expecting a dictionary from the extraction
-            # Create the system prompt using the extracted data
-            system_prompt = {
-                "role": "system",
-                "content": (
-                    f"You are an expert in {system_prompt_data.get('domain')} "
-                    f"{system_prompt_data.get('subject')} with an expertise in {system_prompt_data.get('expertise')} "
-                    f"and qualification of {system_prompt_data.get('qualification')}. "
-                    f"Your response should be {system_prompt_data.get('style')}, {system_prompt_data.get('tone')}, "
-                    f"and in a {system_prompt_data.get('voice')} voice."
-                )
-            }
-        else:
-            logging.error("System prompt data is invalid.")
-            system_prompt = {
-                "role": "system",
-                "content": "Default system prompt. The system prompt could not be generated."
-            }  # Fallback in case of failure
-
+        system_prompt = generate_system_prompt(pdf_document)
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
@@ -158,10 +116,8 @@ def process_pdf_pages(uploaded_file):
 
         # Sort pages by page_number to ensure correct order
         document_data["pages"].sort(key=lambda x: x["page_number"])
-
-        return document_data, system_prompt  # Return both document data and system prompt
+        return document_data
 
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
-
