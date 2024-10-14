@@ -69,7 +69,7 @@ def generate_system_prompt(document_content):
             5. The style, tone, and voice based on the content of the document.
             """}
         ],
-        "temperature": 0.7  # Adjust as needed to generate creative but relevant system prompts
+        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
     }
 
     try:
