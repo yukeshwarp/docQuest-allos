@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
+from pydantic import BaseModel, Field, ValidationError
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -49,6 +50,17 @@ def get_image_explanation(base64_image):
         logging.error(f"Error requesting image explanation: {e}")
         return f"Error: Unable to fetch image explanation due to network issues or API error."
 
+# Define the Pydantic model for structured output
+class SystemPromptOutput(BaseModel):
+    document: str = Field(..., description="The name of the document")
+    domain: str = Field(..., description="The domain or field of the document")
+    subject: str = Field(..., description="The subject of the document")
+    expertise: str = Field(..., description="The expertise level required for understanding the document")
+    qualification: str = Field(..., description="The qualification required to understand or summarize the document")
+    style: str = Field(..., description="The style of the prompt (e.g., professional, casual)")
+    tone: str = Field(..., description="The tone of the summary (e.g., formal, neutral)")
+    voice: str = Field(..., description="The voice of the prompt (e.g., first-person, third-person)")
+
 def generate_system_prompt(document_content):
     """
     Generate a system prompt based on the expertise, tone, and voice needed 
@@ -66,15 +78,21 @@ def generate_system_prompt(document_content):
 
             Content: {document_content}
 
-            Output the system prompt in this format:
+            Output the system prompt in this format as a JSON object:
 
-            1. Expertise: (Field expertise required, such as law, medical, technical, etc.)
-            2. Style: (Professional, casual, instructional, etc.)
-            3. Tone: (Formal, friendly, neutral, etc.)
-            4. Persona: (Example personas like archivist, journalist, historian, etc.)
+            {{
+                "document": "example_document",
+                "domain": "Aerospace engineering",
+                "subject": "aerodynamics",
+                "expertise": "technical",
+                "qualification": "Master in Aerospace engineering",
+                "style": "Professional",
+                "tone": "Formal",
+                "voice": "neutral"
+            }}
             """}
         ],
-        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
+        "temperature": 0.5
     }
 
     try:
@@ -86,11 +104,19 @@ def generate_system_prompt(document_content):
         )
         response.raise_for_status()
         prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
-        return prompt_response.strip()
+
+        # Try to parse the structured output using Pydantic
+        try:
+            system_prompt_output = SystemPromptOutput.parse_raw(prompt_response)
+            return system_prompt_output  # Returns the validated Pydantic model instance
+        except ValidationError as e:
+            logging.error(f"Validation error: {e}")
+            return f"Error: Unable to parse the system prompt output. Validation error: {e}"
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
+
 
 
 def summarize_page(page_text, previous_summary, page_number, system_prompt):
