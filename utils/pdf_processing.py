@@ -119,15 +119,16 @@ def process_pdf_pages(uploaded_file):
         system_prompt_data = generate_system_prompt(document_content)
 
         # Ensure the system prompt is valid
-        if isinstance(system_prompt_data, SystemPromptOutput):
-            document_name = system_prompt_data.document
-            domain = system_prompt_data.domain
-            subject = system_prompt_data.subject
-            expertise = system_prompt_data.expertise
-            qualification = system_prompt_data.qualification
-            style = system_prompt_data.style
-            tone = system_prompt_data.tone
-            voice = system_prompt_data.voice
+        if isinstance(system_prompt_data, dict):  # Check for dictionary type
+            # Extract the required fields from the dictionary
+            document_name = system_prompt_data.get("document", "example_document")
+            domain = system_prompt_data.get("domain", "General")
+            subject = system_prompt_data.get("subject", "General topic")
+            expertise = system_prompt_data.get("expertise", "General knowledge")
+            qualification = system_prompt_data.get("qualification", "No qualification specified")
+            style = system_prompt_data.get("style", "Informal")
+            tone = system_prompt_data.get("tone", "Neutral")
+            voice = system_prompt_data.get("voice", "Neutral")
 
             # Create the system prompt using the variables
             system_prompt = {
