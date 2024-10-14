@@ -67,7 +67,7 @@ class SystemPromptOutput(BaseModel):
     tone: str
     voice: str
 
-def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, str]:
+def generate_system_prompt(document_content: str) -> Union[Dict[str, str], str]:
     """
     Generate a system prompt based on the expertise, tone, and voice needed 
     to summarize the document content.
@@ -113,13 +113,13 @@ def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, s
         # Extract the output
         output_json = response.json().get('choices', [{}])[0].get('message', {}).get('content', "{}")
         
-        # Validate and parse the output
-        system_prompt_output = SystemPromptOutput.parse_raw(output_json)  
+        # Parse the output as a dictionary
+        system_prompt_output = json.loads(output_json)  # Changed from Pydantic model to dict
         return system_prompt_output
     
-    except (ValidationError, IndexError) as e:
-        logging.error(f"Error parsing system prompt output: {e}")
-        return f"Error: Unable to parse the system prompt output. Validation error: {e}"
+    except json.JSONDecodeError as e:
+        logging.error(f"Error decoding JSON response: {e}")
+        return f"Error: Unable to parse the system prompt output. JSON decoding error: {e}"
     except requests.exceptions.RequestException as e:
         logging.error(f"Error requesting system prompt generation: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
