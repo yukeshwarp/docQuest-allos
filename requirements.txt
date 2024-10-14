@@ -4,3 +4,4 @@ requests
 Pillow
 python-dotenv
 pydantic
+openai
