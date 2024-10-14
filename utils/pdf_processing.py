@@ -119,7 +119,7 @@ def process_pdf_pages(uploaded_file):
         # Generate the system prompt using the modified function
         system_prompt_data = generate_system_prompt(document_content)
 
-        # Ensure the system prompt is valid and create an instance of SystemPromptOutput
+        # Ensure the system prompt is valid
         if isinstance(system_prompt_data, str):  # Expecting the output to be a JSON string
             try:
                 system_prompt_data = json.loads(system_prompt_data)  # Attempt to parse JSON
@@ -127,23 +127,22 @@ def process_pdf_pages(uploaded_file):
                 logging.error("Error decoding JSON from system prompt data.")
                 system_prompt_data = {}
 
-        try:
-            # Validate and create system prompt output
-            system_prompt_output = SystemPromptOutput(**system_prompt_data)
+        # Extract the required fields from the dictionary
+        document_name = system_prompt_data.get("document", "example_document")
+        domain = system_prompt_data.get("domain", "General")
+        subject = system_prompt_data.get("subject", "General topic")
+        expertise = system_prompt_data.get("expertise", "General knowledge")
+        qualification = system_prompt_data.get("qualification", "No qualification specified")
+        style = system_prompt_data.get("style", "Informal")
+        tone = system_prompt_data.get("tone", "Neutral")
+        voice = system_prompt_data.get("voice", "Neutral")
 
-            # Create the system prompt using the validated output
-            system_prompt = {
-                "role": "system",
-                "content": (
-                    f"You are an expert in {system_prompt_output.domain} {system_prompt_output.subject} "
-                    f"with an expertise in {system_prompt_output.expertise} and qualification of {system_prompt_output.qualification}. "
-                    f"Your response should be {system_prompt_output.style}, {system_prompt_output.tone}, and in a {system_prompt_output.voice} voice."
-                )
-            }
-
-        except ValidationError as ve:
-            logging.error(f"Validation error while creating system prompt: {ve}")
-            raise ValueError("Invalid data for system prompt.")
+        # Create the system prompt using the variables
+        system_prompt = {
+            "role": "system",
+            "content": f"You are an expert in {domain} {subject} with an expertise in {expertise} and qualification of {qualification}. "
+                       f"Your response should be {style}, {tone}, and in a {voice} voice."
+        }
 
         # Batch size of 5 pages
         batch_size = 5
