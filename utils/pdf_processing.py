@@ -5,6 +5,7 @@ from utils.llm_interaction import summarize_page, get_image_explanation, generat
 import io
 import base64
 import logging
+from pydantic import BaseModel, Field, ValidationError
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -96,7 +97,38 @@ def process_pdf_pages(uploaded_file):
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
-        system_prompt = generate_system_prompt(pdf_document)
+
+        # Prepare document content for system prompt generation
+        # Use the first 3 pages for system prompt generation
+        document_content = ""
+        for page_num in range(min(3, total_pages)):
+            page = pdf_document.load_page(page_num)
+            document_content += page.get_text("text")
+        
+        # Generate the system prompt
+        system_prompt_data = generate_system_prompt(document_content)
+
+        # Ensure the system prompt is valid
+        if isinstance(system_prompt_data, SystemPromptOutput):
+            document_name = system_prompt_data.document
+            domain = system_prompt_data.domain
+            subject = system_prompt_data.subject
+            expertise = system_prompt_data.expertise
+            qualification = system_prompt_data.qualification
+            style = system_prompt_data.style
+            tone = system_prompt_data.tone
+            voice = system_prompt_data.voice
+
+            # Create the system prompt using the variables
+            system_prompt = {
+                "role": "system",
+                "content": f"You are an expert in {domain} {subject} with an expertise in {expertise} and qualification of {qualification}. "
+                           f"Your response should be {style}, {tone}, and in a {voice} voice."
+            }
+        else:
+            logging.error("System prompt data is invalid.")
+            return {"error": "System prompt generation failed."}
+
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
