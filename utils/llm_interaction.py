@@ -68,7 +68,7 @@ def generate_system_prompt(document_content):
 
             Output the system prompt in this format:
 
-            1. Expertise: (Field expertise required, such as law, medical, technical, etc.)
+            1. Start with "you are a ",  Expertise: (Field expertise required, such as law, medical, technical, etc.)
             2. Style: (Professional, casual, instructional, etc.)
             3. Tone: (Formal, friendly, neutral, etc.)
             4. Persona: (Example personas like archivist, journalist, historian, etc.)
