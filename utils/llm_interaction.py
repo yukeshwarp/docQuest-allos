@@ -4,7 +4,6 @@ import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
 from pydantic import BaseModel, Field, ValidationError
-from openai import AzureOpenAI
 from typing import Union
 
 # Set up logging
@@ -57,14 +56,7 @@ from typing import Dict, Any
 import os
 import requests
 from pydantic import BaseModel, ValidationError
-
-# Assuming AzureOpenAI client is already set up as in your example
-client = AzureOpenAI(
-    azure_endpoint="https://gpt-4omniwithimages.openai.azure.com/", 
-    api_key="6e98566acaf24997baa39039b6e6d183",  
-    api_version="2024-02-01"
-)
-
+# Define the Pydantic model for structured output
 class SystemPromptOutput(BaseModel):
     document: str
     domain: str
@@ -80,45 +72,56 @@ def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, s
     Generate a system prompt based on the expertise, tone, and voice needed 
     to summarize the document content.
     """
-    messages = [
-        {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
-        {"role": "user", "content": f"""
-        Analyze the following document content and determine the expertise required to summarize it accurately.
-        Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
-        to summarize this document:
+    headers = get_headers()  # Assuming you have a function to get headers
+    data = {
+        "model": model,
+        "messages": [
+            {"role": "system", "content": "You are an expert in generating system prompts based on document content."},
+            {"role": "user", "content": f"""
+            Analyze the following document content and determine the expertise required to summarize it accurately.
+            Additionally, generate a suitable system prompt with the appropriate tone, style, and voice that should be used
+            to summarize this document:
 
-        Content: {document_content}
+            Content: {document_content}
 
-        Output the system prompt in this format as a JSON object:
+            Output the system prompt in this format as a JSON object:
 
-        {{
-            "document": "example_document",
-            "domain": "Aerospace engineering",
-            "subject": "aerodynamics",
-            "expertise": "technical",
-            "qualification": "Master in Aerospace engineering",
-            "style": "Professional",
-            "tone": "Formal",
-            "voice": "neutral"
-        }}
-        """}
-    ]
+            {{
+                "document": "example_document",
+                "domain": "Aerospace engineering",
+                "subject": "aerodynamics",
+                "expertise": "technical",
+                "qualification": "Master in Aerospace engineering",
+                "style": "Professional",
+                "tone": "Formal",
+                "voice": "neutral"
+            }}
+            """}
+        ],
+        "temperature": 0.0
+    }
 
-    response = client.chat.completions.create(
-        model=model,  # Replace with your model deployment name
-        messages=messages
-    )
-
-    # Extract the function call from the response
     try:
-        output_json = response.choices[0].message.tool_calls[0].function
-        system_prompt_output = SystemPromptOutput.parse_raw(output_json)  # Validate and parse output
+        response = requests.post(
+            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            headers=headers,
+            json=data,
+            timeout=10  # Add timeout for API request
+        )
+        response.raise_for_status()  # Raise HTTPError for bad responses
+        
+        # Extract the output
+        output_json = response.json().get('choices', [{}])[0].get('message', {}).get('content', "{}")
+        
+        # Validate and parse the output
+        system_prompt_output = SystemPromptOutput.parse_raw(output_json)  
         return system_prompt_output
+    
     except (ValidationError, IndexError) as e:
         logging.error(f"Error parsing system prompt output: {e}")
         return f"Error: Unable to parse the system prompt output. Validation error: {e}"
-    except Exception as e:
-        logging.error(f"Error generating system prompt: {e}")
+    except requests.exceptions.RequestException as e:
+        logging.error(f"Error requesting system prompt generation: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
 
 
