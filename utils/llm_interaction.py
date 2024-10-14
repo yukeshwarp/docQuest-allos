@@ -71,7 +71,7 @@ def generate_system_prompt(document_content):
             Content: {document_content}
             """}
         ],
-        "temperature": 0.5  # Adjust as needed to generate creative but relevant system prompts
+        "temperature": 0.7  # Adjust as needed to generate creative but relevant system prompts
     }
 
     try:
