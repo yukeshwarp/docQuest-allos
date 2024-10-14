@@ -58,9 +58,9 @@ from pydantic import BaseModel, ValidationError
 
 # Assuming AzureOpenAI client is already set up as in your example
 client = AzureOpenAI(
-    azure_endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"), 
-    api_key=os.getenv("AZURE_OPENAI_API_KEY"),  
-    api_version="2024-08-01-preview"
+    azure_endpoint="https://gpt-4omniwithimages.openai.azure.com/", 
+    api_key="6e98566acaf24997baa39039b6e6d183",  
+    api_version="2024-02-01"
 )
 
 class SystemPromptOutput(BaseModel):
