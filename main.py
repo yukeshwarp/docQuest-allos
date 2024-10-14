@@ -3,8 +3,6 @@ import json
 from utils.pdf_processing import process_pdf_pages
 from utils.llm_interaction import ask_question
 from concurrent.futures import ThreadPoolExecutor, as_completed
-import logging
-import io
 
 # Initialize session state variables
 if 'documents' not in st.session_state:
@@ -36,6 +34,8 @@ def reset_session():
 
 # Sidebar for file upload and document information
 with st.sidebar:
+    st.subheader("docQuest")
+    st.subheader("📄 Upload Your Documents")
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -78,13 +78,8 @@ with st.sidebar:
                         uploaded_file = future_to_file[future]
                         try:
                             # Get the result from the future
-                            document_data, system_prompt = future.result()  # Unpack document data and system prompt
+                            document_data = future.result()
                             st.session_state.documents[uploaded_file.name] = document_data
-
-                            # Display system prompt in the UI
-                            st.write(f"System Prompt for **{uploaded_file.name}**:")
-                            st.code(system_prompt, language='markdown')
-
                             st.success(f"{uploaded_file.name} processed successfully!")
                         except Exception as e:
                             st.error(f"Error processing {uploaded_file.name}: {e}")
@@ -106,8 +101,9 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("Unveil the Essence, Compare with Ease, and Analyze to Strategize", divider="orange")
+st.subheader("Know more about your documents...", divider="orange")
 if st.session_state.documents:
+    st.subheader("Ask me anything about your documents!")
 
     # Function to display chat history
     def display_chat():
