@@ -34,8 +34,6 @@ def reset_session():
 
 # Sidebar for file upload and document information
 with st.sidebar:
-    st.subheader("docQuest")
-    st.subheader("📄 Upload Your Documents")
 
     # File uploader
     uploaded_files = st.file_uploader(
@@ -106,9 +104,8 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("Know more about your documents...", divider="orange")
+st.subheader("Unveil the Essence, Compare with Ease, and Analyze to Strategize", divider="orange")
 if st.session_state.documents:
-    st.subheader("Ask me anything about your documents!")
 
     # Function to display chat history
     def display_chat():
