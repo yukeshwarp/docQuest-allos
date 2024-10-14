@@ -11,6 +11,8 @@ if 'chat_history' not in st.session_state:
     st.session_state.chat_history = []
 if 'uploaded_files' not in st.session_state:
     st.session_state.uploaded_files = []
+if 'system_prompts' not in st.session_state:
+    st.session_state.system_prompts = {}
 
 # Function to handle user question
 def handle_question(prompt):
@@ -31,6 +33,7 @@ def reset_session():
     st.session_state.documents = {}
     st.session_state.chat_history = []
     st.session_state.uploaded_files = []
+    st.session_state.system_prompts = {}
 
 # Sidebar for file upload and document information
 with st.sidebar:
@@ -76,8 +79,9 @@ with st.sidebar:
                         uploaded_file = future_to_file[future]
                         try:
                             # Get the result from the future
-                            document_data = future.result()
+                            document_data, system_prompt = future.result()
                             st.session_state.documents[uploaded_file.name] = document_data
+                            st.session_state.system_prompts[uploaded_file.name] = system_prompt  # Save the system prompt
                             st.success(f"{uploaded_file.name} processed successfully!")
                         except Exception as e:
                             st.error(f"Error processing {uploaded_file.name}: {e}")
@@ -100,6 +104,7 @@ with st.sidebar:
 # Main Page - Chat Interface
 st.title("docQuest")
 st.subheader("Unveil the Essence, Compare with Ease, and Analyze to Strategize", divider="orange")
+
 if st.session_state.documents:
 
     # Function to display chat history
@@ -114,6 +119,11 @@ if st.session_state.documents:
                 """
                 st.markdown(user_message, unsafe_allow_html=True)
                 st.markdown(assistant_message, unsafe_allow_html=True)
+
+    # Display the system prompt at the top of the chat interface
+    for doc_name, system_prompt in st.session_state.system_prompts.items():
+        st.markdown(f"### System Prompt for {doc_name}")
+        st.markdown(f"**System Prompt**: {system_prompt['content']}")
 
     # Chat input field using st.chat_input
     prompt = st.chat_input("Ask me anything about your documents", key="chat_input")
