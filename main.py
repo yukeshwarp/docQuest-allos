@@ -78,8 +78,13 @@ with st.sidebar:
                         uploaded_file = future_to_file[future]
                         try:
                             # Get the result from the future
-                            document_data = future.result()
+                            document_data, system_prompt = future.result()  # Unpack document data and system prompt
                             st.session_state.documents[uploaded_file.name] = document_data
+
+                            # Display system prompt in the UI
+                            st.write(f"System Prompt for **{uploaded_file.name}**:")
+                            st.code(system_prompt, language='markdown')
+
                             st.success(f"{uploaded_file.name} processed successfully!")
                         except Exception as e:
                             st.error(f"Error processing {uploaded_file.name}: {e}")
@@ -124,4 +129,3 @@ if st.session_state.documents:
     # Check if the prompt has been updated
     if prompt:
         handle_question(prompt)  # Call the function to handle the question
-
