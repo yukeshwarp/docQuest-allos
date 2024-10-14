@@ -10,6 +10,16 @@ from pydantic import BaseModel, Field, ValidationError
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
+class SystemPromptOutput(BaseModel):
+    document: str = Field(..., description="The name of the document")
+    domain: str = Field(..., description="The domain or field of the document")
+    subject: str = Field(..., description="The subject of the document")
+    expertise: str = Field(..., description="The expertise level required for understanding the document")
+    qualification: str = Field(..., description="The qualification required to understand or summarize the document")
+    style: str = Field(..., description="The style of the prompt (e.g., professional, casual)")
+    tone: str = Field(..., description="The tone of the summary (e.g., formal, neutral)")
+    voice: str = Field(..., description="The voice of the prompt (e.g., first-person, third-person)")
+
 def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
     return ' '.join(text.split())
