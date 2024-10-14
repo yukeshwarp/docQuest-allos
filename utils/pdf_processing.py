@@ -6,6 +6,7 @@ import io
 import base64
 import logging
 from pydantic import BaseModel, Field, ValidationError
+from typing import Union
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -74,7 +75,7 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             # Store the extracted data, including the text
             batch_data.append({
                 "page_number": page_number + 1,
-                "full_text": text,# Adding full text to batch data
+                "full_text": text,  # Adding full text to batch data
                 "text_summary": summary,  
                 "image_analysis": image_analysis
             })
@@ -89,7 +90,6 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             })
 
     return batch_data
-
 
 def process_pdf_pages(uploaded_file):
     """Process the PDF pages in batches and extract summaries and image analysis."""
@@ -115,7 +115,7 @@ def process_pdf_pages(uploaded_file):
             page = pdf_document.load_page(page_num)
             document_content += page.get_text("text")
         
-        # Generate the system prompt
+        # Generate the system prompt using the modified function
         system_prompt_data = generate_system_prompt(document_content)
 
         # Ensure the system prompt is valid
