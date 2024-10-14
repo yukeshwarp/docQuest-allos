@@ -120,29 +120,29 @@ def process_pdf_pages(uploaded_file):
         system_prompt_data = generate_system_prompt(document_content)
 
         # Ensure the system prompt is valid
-        if isinstance(system_prompt_data, dict):  # Check for dictionary type
-            # Extract the required fields from the dictionary
-            document_name = system_prompt_data.get("document", "example_document")
-            domain = system_prompt_data.get("domain", "General")
-            subject = system_prompt_data.get("subject", "General topic")
-            expertise = system_prompt_data.get("expertise", "General knowledge")
-            qualification = system_prompt_data.get("qualification", "No qualification specified")
-            style = system_prompt_data.get("style", "Informal")
-            tone = system_prompt_data.get("tone", "Neutral")
-            voice = system_prompt_data.get("voice", "Neutral")
+        if isinstance(system_prompt_data, str):  # Expecting the output to be a JSON string
+            try:
+                system_prompt_data = json.loads(system_prompt_data)  # Attempt to parse JSON
+            except json.JSONDecodeError:
+                logging.error("Error decoding JSON from system prompt data.")
+                system_prompt_data = {}
 
-            # Create the system prompt using the variables
-            system_prompt = {
-                "role": "system",
-                "content": f"You are an expert in {domain} {subject} with an expertise in {expertise} and qualification of {qualification}. "
-                           f"Your response should be {style}, {tone}, and in a {voice} voice."
-            }
-        else:
-            logging.error("System prompt data is invalid.")
-            system_prompt = {
-                "role": "system",
-                "content": "Default system prompt. The system prompt could not be generated."
-            }  # Fallback in case of failure
+        # Extract the required fields from the dictionary
+        document_name = system_prompt_data.get("document", "example_document")
+        domain = system_prompt_data.get("domain", "General")
+        subject = system_prompt_data.get("subject", "General topic")
+        expertise = system_prompt_data.get("expertise", "General knowledge")
+        qualification = system_prompt_data.get("qualification", "No qualification specified")
+        style = system_prompt_data.get("style", "Informal")
+        tone = system_prompt_data.get("tone", "Neutral")
+        voice = system_prompt_data.get("voice", "Neutral")
+
+        # Create the system prompt using the variables
+        system_prompt = {
+            "role": "system",
+            "content": f"You are an expert in {domain} {subject} with an expertise in {expertise} and qualification of {qualification}. "
+                       f"Your response should be {style}, {tone}, and in a {voice} voice."
+        }
 
         # Batch size of 5 pages
         batch_size = 5
