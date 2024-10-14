@@ -137,7 +137,10 @@ def process_pdf_pages(uploaded_file):
             }
         else:
             logging.error("System prompt data is invalid.")
-            return {"error": "System prompt generation failed."}
+            system_prompt = {
+                "role": "system",
+                "content": "Default system prompt. The system prompt could not be generated."
+            }  # Fallback in case of failure
 
         # Batch size of 5 pages
         batch_size = 5
@@ -158,7 +161,8 @@ def process_pdf_pages(uploaded_file):
 
         # Sort pages by page_number to ensure correct order
         document_data["pages"].sort(key=lambda x: x["page_number"])
-        return document_data, system_prompt
+
+        return document_data, system_prompt  # Return both document data and system prompt
 
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
