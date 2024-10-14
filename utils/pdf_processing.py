@@ -5,6 +5,7 @@ from utils.llm_interaction import summarize_page, get_image_explanation, generat
 import io
 import base64
 import logging
+import streamlit as st
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -97,6 +98,11 @@ def process_pdf_pages(uploaded_file):
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
         system_prompt = generate_system_prompt(pdf_document)
+        
+        # Print the system prompt in the Streamlit UI
+        st.write(f"System Prompt Generated for {file_name}:")
+        st.code(system_prompt, language='markdown')
+        
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
@@ -116,7 +122,7 @@ def process_pdf_pages(uploaded_file):
 
         # Sort pages by page_number to ensure correct order
         document_data["pages"].sort(key=lambda x: x["page_number"])
-        return document_data
+        return document_data, system_prompt
 
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
