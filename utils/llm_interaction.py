@@ -24,7 +24,7 @@ def get_image_explanation(base64_image):
             {"role": "user", "content": [
                 {
                     "type": "text",
-                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be accurate in your explanation."
+                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be acuurate in your explaination."
                 },
                 {
                     "type": "image_url",
@@ -67,8 +67,6 @@ def generate_system_prompt(document_content):
             3. The experience and expertise needed to analyze this document
             4. The typical educational qualification needed to analyze the document
             5. The style, tone, and voice based on the content of the document.
-
-            Content: {document_content}
             """}
         ],
         "temperature": 0.7  # Adjust as needed to generate creative but relevant system prompts
@@ -82,8 +80,8 @@ def generate_system_prompt(document_content):
             timeout=10
         )
         response.raise_for_status()
-        extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
-        return extracted_text
+        prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
+        return prompt_response.strip()
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
