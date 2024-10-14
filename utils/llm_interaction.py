@@ -62,12 +62,11 @@ def generate_system_prompt(document_content):
             {"role": "user", "content": f"""
             Analyze the following document\n content : {document_content}\n
             Identify the following from the document content :
-            1. document name as ID,
-            2. The domain based on the content of the document
-            3. The subject matter based on the content of the document
-            4. The experience and expertise needed to analyse this document
-            5. The typical educational qualification needed to analyze the document
-            6. The style,tone and voice based on the content of the document.
+            1. The domain based on the content of the document
+            2. The subject matter based on the content of the document
+            3. The experience and expertise needed to analyse this document
+            4. The typical educational qualification needed to analyze the document
+            5. The style,tone and voice based on the content of the document.
 
             Content: {document_content}
             """}
