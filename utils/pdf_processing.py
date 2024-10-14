@@ -5,7 +5,7 @@ from utils.llm_interaction import summarize_page, get_image_explanation, generat
 import io
 import base64
 import logging
-import streamlit as at
+import streamlit as st
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
