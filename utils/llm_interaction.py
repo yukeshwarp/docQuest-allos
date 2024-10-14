@@ -103,7 +103,7 @@ def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, s
     ]
 
     response = client.chat.completions.create(
-        model="MODEL_DEPLOYMENT_NAME",  # Replace with your model deployment name
+        model=model,  # Replace with your model deployment name
         messages=messages
     )
 
