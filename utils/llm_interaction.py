@@ -51,6 +51,10 @@ def get_image_explanation(base64_image):
         return f"Error: Unable to fetch image explanation due to network issues or API error."
 
 # Define the Pydantic model for structured output
+from pydantic import BaseModel, Field, ValidationError
+import requests
+import logging
+
 class SystemPromptOutput(BaseModel):
     document: str = Field(..., description="The name of the document")
     domain: str = Field(..., description="The domain or field of the document")
@@ -116,6 +120,7 @@ def generate_system_prompt(document_content):
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
         return f"Error: Unable to generate system prompt due to network issues or API error."
+
 
 
 
