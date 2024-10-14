@@ -96,7 +96,13 @@ def process_pdf_pages(uploaded_file):
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
-        system_prompt = "You are an summarizing assistant with the following knowledge and characteristics" + generate_system_prompt(pdf_document)
+        full_text = ""
+        for page_numberr in range(total_pages):
+            pager = pdf_document.load_page(page_numberr)
+            full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
+
+        # Generate system prompt from full text
+        system_prompt =  "You are a helpful document summarizing assistant with the following knowledge and characteristics:\n" + generate_system_prompt(full_textr)
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
