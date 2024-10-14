@@ -119,15 +119,12 @@ def process_pdf_pages(uploaded_file):
         # Generate the system prompt using the modified function
         system_prompt_data = generate_system_prompt(document_content)
 
-        # Ensure the system prompt is valid
-        if isinstance(system_prompt_data, str):  # Expecting the output to be a JSON string
-            try:
-                system_prompt_data = json.loads(system_prompt_data)  # Attempt to parse JSON
-            except json.JSONDecodeError:
-                logging.error("Error decoding JSON from system prompt data.")
-                system_prompt_data = {}
+        # Ensure the system prompt data is valid
+        if not isinstance(system_prompt_data, dict):
+            logging.error("System prompt data is not a valid dictionary.")
+            raise ValueError("Invalid system prompt data.")
 
-        # Extract the required fields from the dictionary
+        # Extract the required fields from the system_prompt_data dictionary
         document_name = system_prompt_data.get("document", "example_document")
         domain = system_prompt_data.get("domain", "General")
         subject = system_prompt_data.get("subject", "General topic")
