@@ -5,8 +5,8 @@ from utils.config import azure_endpoint, api_key, api_version, model
 import logging
 from pydantic import BaseModel, Field, ValidationError
 from openai import AzureOpenAI
-from typing import Union
-
+import json
+from typing import Union, Dict, Any
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -75,7 +75,11 @@ class SystemPromptOutput(BaseModel):
     tone: str
     voice: str
 
-def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, str]:
+import json
+import logging
+from typing import Union, Dict, Any
+
+def generate_system_prompt(document_content: str) -> Union[Dict[str, Any], str]:
     """
     Generate a system prompt based on the expertise, tone, and voice needed 
     to summarize the document content.
@@ -104,17 +108,25 @@ def generate_system_prompt(document_content: str) -> Union[SystemPromptOutput, s
         """}
     ]
 
-    response = client.chat.completions.create(
-        model=model,  # Replace with your model deployment name
-        messages=messages
-    )
-
-    # Extract the function call from the response
     try:
-        output_json = response.choices[0].message.tool_calls[0].function
-        system_prompt_output = SystemPromptOutput.parse_raw(output_json)  # Validate and parse output
-        return system_prompt_output
-    except (ValidationError, IndexError) as e:
+        response = client.chat.completions.create(
+            model=model,  # Replace with your model deployment name
+            messages=messages
+        )
+
+        # Extract the output text from the response
+        output_text = response.choices[0].message.content.strip()  # Adjust according to your API response structure
+        
+        # Parse the output into details
+        details = {}
+        for line in output_text.split("\n"):
+            if ":" in line:
+                key, value = line.split(":", 1)
+                details[key.strip().lower().replace(" ", "_")] = value.strip()
+        
+        return details
+
+    except IndexError as e:
         logging.error(f"Error parsing system prompt output: {e}")
         return f"Error: Unable to parse the system prompt output. Validation error: {e}"
     except Exception as e:
