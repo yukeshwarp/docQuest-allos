@@ -75,16 +75,15 @@ def generate_system_prompt(document_content):
     }
 
    try:
-        response = requests.post(
-            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-            headers=headers,
-            json=data,
-            timeout=10
-        )
-        response.raise_for_status()
-
-        extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
-        return extracted_text
+       response = requests.post(
+           f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+           headers=headers,
+           json=data,
+           timeout=10
+       )
+       response.raise_for_status()
+       extracted_text = response.json().get('choices', [{}])[0].get('message', {}).get('content', "No content returned.")
+       return extracted_text
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Error generating system prompt: {e}")
