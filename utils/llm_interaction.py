@@ -5,6 +5,8 @@ from utils.config import azure_endpoint, api_key, api_version, model
 import logging
 from pydantic import BaseModel, Field, ValidationError
 from openai import AzureOpenAI
+from typing import Union
+
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
 
