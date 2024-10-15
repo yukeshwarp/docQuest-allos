@@ -102,7 +102,7 @@ def process_pdf_pages(uploaded_file):
             full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
 
         # Generate system prompt from full text
-        system_prompt =  "You are a helpful document summarizing assistant with the following knowledge and characteristics:\n" + generate_system_prompt(full_textr)
+        system_prompt =  generate_system_prompt(full_textr)
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
