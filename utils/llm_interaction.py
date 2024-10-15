@@ -58,7 +58,7 @@ def generate_system_prompt(document_content):
     data = {
         "model": model,
         "messages": [
-            {"role": "system", "content": "You are an expert in analyzing documents"},
+            {"role": "system", "content": "You are a helpful assistant that serves the task given."},
             {"role": "user", "content":
              f"""You are provided with a document. Based on its content, extract and identify the following details:
             Document_content: {document_content}
