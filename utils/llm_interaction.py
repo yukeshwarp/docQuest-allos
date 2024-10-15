@@ -40,7 +40,7 @@ def get_image_explanation(base64_image):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10  # Add timeout for API request
+            timeout=20  # Add timeout for API request
         )
         response.raise_for_status()  # Raise HTTPError for bad responses
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
@@ -109,7 +109,7 @@ def generate_system_prompt(document_content):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10
+            timeout=20
         )
         response.raise_for_status()
         prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
@@ -151,7 +151,7 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10
+            timeout=20
         )
         response.raise_for_status()
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
@@ -224,7 +224,7 @@ def ask_question(documents, question, chat_history):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=10  # Add timeout for API request
+            timeout=20  # Add timeout for API request
         )
         response.raise_for_status()  # Raise HTTPError for bad responses
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No answer provided.").strip()
