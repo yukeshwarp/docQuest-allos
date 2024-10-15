@@ -106,7 +106,7 @@ with st.sidebar:
 
 # Main Page - Chat Interface
 st.title("docQuest")
-st.subheader("Unveil the Essence, Compare Effortlessly, Analyze Smartly", divider="orange")
+st.subheader("Unveil the Essence, Compare Easily, Analyze Smartly", divider="orange")
 if st.session_state.documents:
 
     # Function to display chat history
