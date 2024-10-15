@@ -3,6 +3,3 @@ PyMuPDF
 requests
 Pillow
 python-dotenv
-pydantic
-openai
-typing
