@@ -14,8 +14,11 @@ def get_headers():
         "api-key": api_key
     }
 
-def get_image_explanation(base64_image):
-    """Get image explanation from OpenAI API."""
+import time
+import requests
+
+def get_image_explanation(base64_image, retries=3, initial_delay=2):
+    """Get image explanation from OpenAI API with exponential backoff."""
     headers = get_headers()
     data = {
         "model": model,
@@ -24,7 +27,7 @@ def get_image_explanation(base64_image):
             {"role": "user", "content": [
                 {
                     "type": "text",
-                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be acuurate in your explaination."
+                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be accurate in your explanation."
                 },
                 {
                     "type": "image_url",
@@ -35,19 +38,30 @@ def get_image_explanation(base64_image):
         "temperature": 0.0
     }
 
-    try:
-        response = requests.post(
-            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-            headers=headers,
-            json=data,
-            timeout=20  # Add timeout for API request
-        )
-        response.raise_for_status()  # Raise HTTPError for bad responses
-        return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
-    
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error requesting image explanation: {e}")
-        return f"Error: Unable to fetch image explanation due to network issues or API error."
+    url = f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
+
+    # Exponential backoff retry mechanism
+    for attempt in range(retries):
+        try:
+            response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
+            response.raise_for_status()  # Raise HTTPError for bad responses
+            return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
+        
+        except requests.exceptions.Timeout as e:
+            if attempt < retries - 1:
+                wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
+                logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
+                time.sleep(wait_time)
+            else:
+                logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
+                return f"Error: Request timed out after {retries} retries."
+
+        except requests.exceptions.RequestException as e:
+            logging.error(f"Error requesting image explanation: {e}")
+            return f"Error: Unable to fetch image explanation due to network issues or API error."
+
+    return "Error: Max retries reached without success."
+
 
 def generate_system_prompt(document_content):
     """
