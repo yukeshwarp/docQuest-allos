@@ -43,7 +43,7 @@ def get_image_explanation(base64_image, retries=3, initial_delay=0.1, max_jitter
     # Exponential backoff with minimal sleep and jitter retry mechanism
     for attempt in range(retries):
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=30)  # Adjusted timeout
+            response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
             response.raise_for_status()  # Raise HTTPError for bad responses
             return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
         
