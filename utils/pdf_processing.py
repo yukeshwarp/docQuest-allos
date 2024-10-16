@@ -63,7 +63,7 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
             base64_image = base64.b64encode(compressed_img_data).decode("utf-8")
             return base64_image
                 
-return None
+    return None
 
 
 def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.4):
