@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
+import random
+import time
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
