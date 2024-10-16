@@ -52,7 +52,7 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
         pix = None
         compressed_img_data = compress_image(img_data)
         base64_image = base64.b64encode(compressed_img_data).decode("utf-8")
-        detected_pages.append((page_number + 1, base64_image))
+        return base64_image
         
     elif (images or vector_graphics_detected) and text.strip():
         if text_coverage < ocr_text_threshold:
@@ -61,9 +61,9 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
             pix = None
             compressed_img_data = compress_image(img_data)
             base64_image = base64.b64encode(compressed_img_data).decode("utf-8")
-            detected_pages.append((page_number + 1, base64_image))
+            return base64_image
                 
-return detected_pages
+return None
 
 
 def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.4):
