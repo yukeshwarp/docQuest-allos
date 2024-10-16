@@ -14,7 +14,7 @@ def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
     return ' '.join(text.split())
 
-def compress_image(image_data, max_size=(1024, 1024), quality=85):
+def compress_image(image_data, max_size=(1024, 1024), quality=55):
     """Compress image to reduce size before sending to server."""
     try:
         image = Image.open(io.BytesIO(image_data))  # Open image from byte data
