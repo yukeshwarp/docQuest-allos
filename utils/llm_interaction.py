@@ -17,8 +17,8 @@ def get_headers():
 import time
 import requests
 
-def get_image_explanation(base64_image, retries=3, initial_delay=2):
-    """Get image explanation from OpenAI API with exponential backoff."""
+def get_image_explanation(base64_image, retries=3, initial_delay=2, max_jitter=1):
+    """Get image explanation from OpenAI API with exponential backoff and jitter."""
     headers = get_headers()
     data = {
         "model": model,
@@ -33,14 +33,14 @@ def get_image_explanation(base64_image, retries=3, initial_delay=2):
                     "type": "image_url",
                     "image_url": {"url": f"data:image/png;base64,{base64_image}"}
                 }
-            ]}
+            ]},
         ],
         "temperature": 0.0
     }
 
     url = f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
 
-    # Exponential backoff retry mechanism
+    # Exponential backoff with jitter retry mechanism
     for attempt in range(retries):
         try:
             response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
@@ -49,9 +49,11 @@ def get_image_explanation(base64_image, retries=3, initial_delay=2):
         
         except requests.exceptions.Timeout as e:
             if attempt < retries - 1:
-                wait_time = min(initial_delay * (2 ** attempt), 60)  # Cap exponential backoff to 60 seconds Exponential backoff
-                logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
-                time.sleep(wait_time)
+                wait_time = min(initial_delay * (2 ** attempt), 60)  # Cap exponential backoff to 60 seconds
+                jitter = random.uniform(0, max_jitter)  # Adding jitter
+                total_wait_time = wait_time + jitter
+                logging.warning(f"Timeout error. Retrying in {total_wait_time:.2f} seconds... (Attempt {attempt + 1}/{retries})")
+                time.sleep(total_wait_time)
             else:
                 logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
                 return f"Error: Request timed out after {retries} retries."
