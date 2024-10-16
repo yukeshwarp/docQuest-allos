@@ -42,7 +42,7 @@ with st.sidebar:
 
     # File uploader
     uploaded_files = st.file_uploader(
-        "",
+        "Your files here..",
         type=["pdf", "docx", "xlsx", "pptx"],
         accept_multiple_files=True,
         help="Supports PDF, DOCX, XLSX, and PPTX formats.",
