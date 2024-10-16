@@ -49,7 +49,7 @@ def get_image_explanation(base64_image, retries=3, initial_delay=2):
         
         except requests.exceptions.Timeout as e:
             if attempt < retries - 1:
-                wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
+                wait_time = min(initial_delay * (2 ** attempt), 60)  # Cap exponential backoff to 60 seconds Exponential backoff
                 logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
                 time.sleep(wait_time)
             else:
