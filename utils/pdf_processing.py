@@ -21,7 +21,7 @@ def compress_image(image_data, max_size=(1024, 1024), quality=85):
         image = image.convert("RGB")  # Ensure it's in RGB format (JPEG doesn't support RGBA)
         
         # Resize image to fit within the max_size while preserving aspect ratio
-        image.thumbnail(max_size, Image.ANTIALIAS)  # Use ANTIALIAS for better quality
+        image.thumbnail(max_size, Image.LANCZOS)  # Use LANCZOS for better quality
         
         # Save the image to a byte buffer with specified quality
         buffer = io.BytesIO()
