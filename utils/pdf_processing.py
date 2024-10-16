@@ -5,6 +5,7 @@ from utils.llm_interaction import summarize_page, get_image_explanation, generat
 import io
 import base64
 import logging
+from PIL import Image
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -13,8 +14,23 @@ def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
     return ' '.join(text.split())
 
+def compress_image(image_data, max_size=(1024, 1024), quality=70):
+    """Compress image to reduce size before sending to server."""
+    image = Image.open(io.BytesIO(image_data))  # Open image from byte data
+    image = image.convert("RGB")  # Ensure it's in RGB format (JPEG doesn't support RGBA)
+    
+    # Resize image to fit within the max_size while preserving aspect ratio
+    image.thumbnail(max_size)
+
+    # Save the image to a byte buffer with specified quality
+    buffer = io.BytesIO()
+    image.save(buffer, format="JPEG", quality=quality)  # Use JPEG format for compression
+    buffer.seek(0)
+    
+    return buffer.getvalue()
+
 def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.4):
-    """Detect OCR images or vector graphics on a given PDF page."""
+    """Detect OCR images or vector graphics on a given PDF page and compress image."""
     try:
         images = page.get_images(full=True)
         text_blocks = page.get_text("blocks")
@@ -26,18 +42,19 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.4):
         text_coverage = text_area / page_area if page_area > 0 else 0
 
         pix = page.get_pixmap()
-        img_data = pix.tobytes("png")
-        base64_image = base64.b64encode(img_data).decode("utf-8")
+        img_data = pix.tobytes("png")  # Extract PNG image data
         pix = None  # Free up memory for pixmap
 
+        # Check if OCR images or vector graphics are detected and text coverage is low
         if (images or vector_graphics_detected) and text_coverage < ocr_text_threshold:
-            return base64_image  # Return image data if OCR image or vector graphics detected
+            compressed_img_data = compress_image(img_data)  # Compress the image
+            base64_image = base64.b64encode(compressed_img_data).decode("utf-8")
+            return base64_image  # Return compressed image data if OCR image or vector graphics detected
 
     except Exception as e:
         logging.error(f"Error detecting OCR images/graphics on page {page.number}: {e}")
     
     return None
-
 def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.4):
     """Process a batch of PDF pages and extract summaries, full text, and image analysis."""
     previous_summary = ""
