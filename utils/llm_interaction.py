@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
+import httpx
+import asyncio
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -17,8 +20,12 @@ def get_headers():
 import time
 import requests
 
-def get_image_explanation(base64_image, retries=3, initial_delay=2):
-    """Get image explanation from OpenAI API with exponential backoff."""
+import httpx
+import asyncio
+import random
+
+async def get_image_explanation(base64_image, retries=2, initial_delay=1, max_jitter=0.5, timeout=30):
+    """Get image explanation using an async HTTP client with exponential backoff and jitter."""
     headers = get_headers()
     data = {
         "model": model,
@@ -40,27 +47,30 @@ def get_image_explanation(base64_image, retries=3, initial_delay=2):
 
     url = f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
 
-    # Exponential backoff retry mechanism
-    for attempt in range(retries):
-        try:
-            response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
-            response.raise_for_status()  # Raise HTTPError for bad responses
-            return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
-        
-        except requests.exceptions.Timeout as e:
-            if attempt < retries - 1:
-                wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
-                logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
-                time.sleep(wait_time)
-            else:
-                logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
-                return f"Error: Request timed out after {retries} retries."
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        for attempt in range(retries):
+            try:
+                response = await client.post(url, headers=headers, json=data)
+                response.raise_for_status()
+                return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
+            
+            except httpx.TimeoutException as e:
+                if attempt < retries - 1:
+                    wait_time = initial_delay * (2 ** attempt)
+                    jitter = random.uniform(0, max_jitter)
+                    total_wait_time = wait_time + jitter
+                    logging.warning(f"Timeout error. Retrying in {total_wait_time:.2f} seconds... (Attempt {attempt + 1}/{retries})")
+                    await asyncio.sleep(total_wait_time)
+                else:
+                    logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
+                    return f"Error: Request timed out after {retries} retries."
 
-        except requests.exceptions.RequestException as e:
-            logging.error(f"Error requesting image explanation: {e}")
-            return f"Error: Unable to fetch image explanation due to network issues or API error."
+            except httpx.RequestError as e:
+                logging.error(f"Error requesting image explanation: {e}")
+                return f"Error: Unable to fetch image explanation due to network issues or API error."
 
-    return "Error: Max retries reached without success."
+        return "Error: Max retries reached without success."
+
 
 
 def generate_system_prompt(document_content):
