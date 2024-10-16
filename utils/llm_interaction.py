@@ -3,8 +3,6 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
-import random
-import time
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -16,9 +14,11 @@ def get_headers():
         "api-key": api_key
     }
 
+import time
+import requests
 
-def get_image_explanation(base64_image, retries=3, initial_delay=0.1, max_jitter=0.1):
-    """Get image explanation from OpenAI API with minimal exponential backoff and jitter."""
+def get_image_explanation(base64_image, retries=3, initial_delay=2):
+    """Get image explanation from OpenAI API with exponential backoff."""
     headers = get_headers()
     data = {
         "model": model,
@@ -40,7 +40,7 @@ def get_image_explanation(base64_image, retries=3, initial_delay=0.1, max_jitter
 
     url = f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
 
-    # Exponential backoff with minimal sleep and jitter retry mechanism
+    # Exponential backoff retry mechanism
     for attempt in range(retries):
         try:
             response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
@@ -50,10 +50,8 @@ def get_image_explanation(base64_image, retries=3, initial_delay=0.1, max_jitter
         except requests.exceptions.Timeout as e:
             if attempt < retries - 1:
                 wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
-                jitter = random.uniform(0, max_jitter)  # Adding minimal jitter
-                total_wait_time = wait_time + jitter
-                logging.warning(f"Timeout error. Retrying in {total_wait_time:.2f} seconds... (Attempt {attempt + 1}/{retries})")
-                time.sleep(total_wait_time)
+                logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
+                time.sleep(wait_time)
             else:
                 logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
                 return f"Error: Request timed out after {retries} retries."
@@ -63,7 +61,6 @@ def get_image_explanation(base64_image, retries=3, initial_delay=0.1, max_jitter
             return f"Error: Unable to fetch image explanation due to network issues or API error."
 
     return "Error: Max retries reached without success."
-
 
 
 def generate_system_prompt(document_content):
@@ -78,7 +75,7 @@ def generate_system_prompt(document_content):
             {"role": "system", "content": "You are a helpful assistant that serves the task given."},
             {"role": "user", "content":
              f"""You are provided with a document. Based on its content, extract and identify the following details:
-            Document_content: ```{document_content}```
+            Document_content: {document_content}
 
             1. **Domain**: Identify the specific domain or field of expertise the document is focused on. Examples include technology, finance, healthcare, law, etc.
             2. **Subject Matter**: Determine the main topic or focus of the document. This could be a detailed concept, theory, or subject within the domain.
