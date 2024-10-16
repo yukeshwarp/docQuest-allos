@@ -6,6 +6,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import io
 
+# Add your logo at the top of the app
+st.image("logo.png", width=150)  # Adjust the width to suit your design
+
 # Initialize session state variables
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
