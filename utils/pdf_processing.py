@@ -50,7 +50,7 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             text = page.get_text("text").strip()
             summary = ""
             # Summarize the page
-            if text!="":
+            if text != "":
                 preprocessed_text = remove_stopwords_and_blanks(text)
                 summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
                 previous_summary = summary
@@ -98,17 +98,17 @@ def process_pdf_pages(uploaded_file, first_file=False):
         pdf_document = fitz.open(stream=pdf_stream, filetype="pdf")
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
-        full_textr = ""
+        full_text = ""
         
         # If it's the first file, generate the system prompt
         if first_file and generated_system_prompt is None:
-            for page_numberr in range(total_pages):
-                pager = pdf_document.load_page(page_numberr)
-                full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
-                if len(full_textr.split()) >= 200:
+            for page_number in range(total_pages):
+                page = pdf_document.load_page(page_number)
+                full_text += page.get_text("text").strip() + " "  # Concatenate all text
+                if len(full_text.split()) >= 200:
                     break
             # Use the first 200 words for the system prompt
-            first_200_words = ' '.join(full_textr.split()[:200])
+            first_200_words = ' '.join(full_text.split()[:200])
             generated_system_prompt = generate_system_prompt(first_200_words)
 
         # Batch size of 5 pages
