@@ -3,8 +3,6 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
-import random
-import time
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -19,8 +17,8 @@ def get_headers():
 import time
 import requests
 
-def get_image_explanation(base64_image, retries=3, initial_delay=2, max_jitter=1):
-    """Get image explanation from OpenAI API with exponential backoff and jitter."""
+def get_image_explanation(base64_image, retries=5, initial_delay=2):
+    """Get image explanation from OpenAI API with exponential backoff."""
     headers = get_headers()
     data = {
         "model": model,
@@ -35,27 +33,25 @@ def get_image_explanation(base64_image, retries=3, initial_delay=2, max_jitter=1
                     "type": "image_url",
                     "image_url": {"url": f"data:image/png;base64,{base64_image}"}
                 }
-            ]},
+            ]}
         ],
         "temperature": 0.0
     }
 
     url = f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}"
 
-    # Exponential backoff with jitter retry mechanism
+    # Exponential backoff retry mechanism
     for attempt in range(retries):
         try:
-            response = requests.post(url, headers=headers, json=data, timeout=50)  # Adjusted timeout
+            response = requests.post(url, headers=headers, json=data, timeout=30)  # Adjusted timeout
             response.raise_for_status()  # Raise HTTPError for bad responses
             return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
         
         except requests.exceptions.Timeout as e:
             if attempt < retries - 1:
-                wait_time = min(initial_delay * (2 ** attempt), 60)  # Cap exponential backoff to 60 seconds
-                jitter = random.uniform(0, max_jitter)  # Adding jitter
-                total_wait_time = wait_time + jitter
-                logging.warning(f"Timeout error. Retrying in {total_wait_time:.2f} seconds... (Attempt {attempt + 1}/{retries})")
-                time.sleep(total_wait_time)
+                wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
+                logging.warning(f"Timeout error. Retrying in {wait_time} seconds... (Attempt {attempt + 1}/{retries})")
+                time.sleep(wait_time)
             else:
                 logging.error(f"Request failed after {retries} attempts due to timeout: {e}")
                 return f"Error: Request timed out after {retries} retries."
@@ -94,7 +90,26 @@ def generate_system_prompt(document_content):
     
             ---
 
-            You are now assuming a persona based on the content of the provided document. Your persona should reflect the <domain> and <subject matter> of the content, with the requisite <experience>, <expertise>, and <educational qualifications> to analyze the document effectively. Additionally, you should adopt the <style>, <tone> and <voice> present in the document.
+            You are now assuming a persona based on the content of the provided document. Your persona should reflect the <domain> and <subject matter> of the content, with the requisite <experience>, <expertise>, and <educational qualifications> to analyze the document effectively. Additionally, you should adopt the <style>, <tone> and <voice> present in the document. Your expertise includes:
+    
+            <Domain>-Specific Expertise:
+            - In-depth knowledge and experience relevant to the <subject matter> of the document.
+            - Familiarity with the key concepts, terminology, and practices within the <domain>.
+            
+            Analytical Proficiency:
+            - Skilled in interpreting and evaluating the content, structure, and purpose of the document.
+            - Ability to assess the accuracy, clarity, and completeness of the information presented.
+    
+            Style, Tone, and Voice Adaptation:
+            - Adopt the writing <style>, <tone>, and <voice> used in the document to ensure consistency and coherence.
+            - Maintain the level of formality, technicality, or informality as appropriate to the document’s context.
+            
+            Your analysis should include:
+            - A thorough evaluation of the content, ensuring it aligns with <domain>-specific standards and practices.
+            - An assessment of the clarity and precision of the information and any accompanying diagrams or illustrations.
+            - Feedback on the strengths and potential areas for improvement in the document.
+            - A determination of whether the document meets its intended purpose and audience requirements.
+            - Proposals for any necessary amendments or enhancements to improve the document’s effectiveness and accuracy.
         
             ---
 
@@ -150,7 +165,7 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=30
+            timeout=20
         )
         response.raise_for_status()
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
