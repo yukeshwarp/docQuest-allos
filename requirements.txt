@@ -3,4 +3,3 @@ PyMuPDF
 requests
 Pillow
 python-dotenv
-httpx
