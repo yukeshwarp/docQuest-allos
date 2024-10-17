@@ -36,8 +36,6 @@ def reset_session():
 
 # Sidebar for file upload and document information
 with st.sidebar:
-
-    # File uploader
     uploaded_files = st.file_uploader(
         "",
         type=["pdf", "docx", "xlsx", "pptx"],
@@ -45,18 +43,9 @@ with st.sidebar:
         help="Supports PDF, DOCX, XLSX, and PPTX formats.",
     )
 
-    # Check if the uploaded files have changed
-    uploaded_filenames = [file.name for file in uploaded_files] if uploaded_files else []
-    previous_filenames = st.session_state.uploaded_files
-
-    # Detect removed files and reset session state if needed
-    if set(uploaded_filenames) != set(previous_filenames):
-        reset_session()
-        st.session_state.uploaded_files = uploaded_filenames
-
     if uploaded_files:
         new_files = []
-        for uploaded_file in uploaded_files:
+        for index, uploaded_file in enumerate(uploaded_files):
             if uploaded_file.name not in st.session_state.documents:
                 new_files.append(uploaded_file)
             else:
@@ -72,13 +61,16 @@ with st.sidebar:
             with st.spinner("Learning your documents..."):
                 # Process files in pairs using ThreadPoolExecutor
                 with ThreadPoolExecutor(max_workers=2) as executor:
-                    future_to_file = {executor.submit(process_pdf_pages, uploaded_file): uploaded_file for uploaded_file in new_files}
+                    future_to_file = {
+                        executor.submit(process_pdf_pages, uploaded_file, first_file=(index == 0)): uploaded_file 
+                        for index, uploaded_file in enumerate(new_files)
+                    }
 
                     for i, future in enumerate(as_completed(future_to_file)):
                         uploaded_file = future_to_file[future]
                         try:
                             # Get the result from the future
-                            document_data= future.result() 
+                            document_data = future.result()
                             st.session_state.documents[uploaded_file.name] = document_data
 
                             st.success(f"{uploaded_file.name} processed successfully!")
