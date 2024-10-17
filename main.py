@@ -58,7 +58,7 @@ with st.sidebar:
             total_files = len(new_files)
 
             # Spinner while processing documents
-            with st.spinner("Learning your documents..."):
+            with st.spinner("Learning about your document(s)..."):
                 # Process files in pairs using ThreadPoolExecutor
                 with ThreadPoolExecutor(max_workers=2) as executor:
                     future_to_file = {
