@@ -179,12 +179,13 @@ def ask_question(documents, question, chat_history):
     """Answer a question based on the full text, summarized content of multiple PDFs, and chat history."""
     combined_content = ""
 
-    # Combine document full texts, summaries, and image analyses
+    # Combine document full texts, summaries, and image analyses with document names
     for doc_name, doc_data in documents.items():
+        combined_content += f"\nDocument: {doc_name}\n"  # Add document name for clarity
         for page in doc_data["pages"]:
             page_summary = page['text_summary']
             page_full_text = page.get('full_text', 'No text available')  # Include full text
-            
+
             image_explanation = "\n".join(
                 f"Page {img['page_number']}: {img['explanation']}" for img in page["image_analysis"]
             ) if page["image_analysis"] else "No image analysis."
@@ -201,10 +202,10 @@ def ask_question(documents, question, chat_history):
         f"User: {chat['question']}\nAssistant: {chat['answer']}\n" for chat in chat_history
     )
 
-    # Prepare the prompt message
+    # Prepare the prompt message with document name references
     prompt_message = (
         f"""
-    You are given the following content:
+    You are given the following content from multiple documents:
 
     ---
     {combined_content}
@@ -215,8 +216,8 @@ def ask_question(documents, question, chat_history):
     Carefully verify all details from the content and do not generate any information that is not explicitly mentioned in it.
     If the answer cannot be determined from the content, explicitly state that the information is not available.
     Ensure the response is clearly formatted for readability.
-    
-    At the end of the response, include references to the document name and page number(s) where the information was found.
+
+    Include references to the document name and page number(s) where the information was found.
 
     Question: {question}
     """
@@ -246,3 +247,4 @@ def ask_question(documents, question, chat_history):
     except requests.exceptions.RequestException as e:
         logging.error(f"Error answering question '{question}': {e}")
         raise Exception(f"Unable to answer the question due to network issues or API error.")
+
