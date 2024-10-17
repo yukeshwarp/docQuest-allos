@@ -165,7 +165,7 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=20
+            timeout=50
         )
         response.raise_for_status()
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
