@@ -82,7 +82,7 @@ with st.sidebar:
                     
             progress_text.text("Processing complete.")
             progress_bar.empty()
-
+            
     if st.session_state.documents:
         download_data = json.dumps(st.session_state.documents, indent=4)
         st.download_button(
