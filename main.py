@@ -6,9 +6,6 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import io
 
-# Add your logo at the top of the app
-#st.logo("logo.png", size = "large", icon_image="logo.png")  # Adjust the width to suit your design
-
 # Initialize session state variables
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
@@ -42,7 +39,7 @@ with st.sidebar:
 
     # File uploader
     uploaded_files = st.file_uploader(
-        "Your files here..",
+        "",
         type=["pdf", "docx", "xlsx", "pptx"],
         accept_multiple_files=True,
         help="Supports PDF, DOCX, XLSX, and PPTX formats.",
@@ -81,12 +78,8 @@ with st.sidebar:
                         uploaded_file = future_to_file[future]
                         try:
                             # Get the result from the future
-                            document_data, system_prompt = future.result()  # Unpack document data and system prompt
+                            document_data= future.result() 
                             st.session_state.documents[uploaded_file.name] = document_data
-
-                            # Display system prompt in the UI
-                            st.write(f"System Prompt for **{uploaded_file.name}**:")
-                            st.code(system_prompt, language='markdown')
 
                             st.success(f"{uploaded_file.name} processed successfully!")
                         except Exception as e:
@@ -108,7 +101,6 @@ with st.sidebar:
         )
 
 # Main Page - Chat Interface
-st.image("logoD.png", width = 200, output_format = "PNG")
 st.title("docQuest")
 st.subheader("Unveil the Essence, Compare Easily, Analyze Smartly", divider="orange")
 if st.session_state.documents:
