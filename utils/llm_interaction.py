@@ -95,26 +95,7 @@ def generate_system_prompt(document_content):
             ---
 
             You are now assuming a persona based on the content of the provided document. Your persona should reflect the <domain> and <subject matter> of the content, with the requisite <experience>, <expertise>, and <educational qualifications> to analyze the document effectively. Additionally, you should adopt the <style>, <tone> and <voice> present in the document.
-            
-             <Domain>-Specific Expertise:
-            - In-depth knowledge and experience relevant to the <subject matter> of the document.
-            - Familiarity with the key concepts, terminology, and practices within the <domain>.
-            
-            Analytical Proficiency:
-            - Skilled in interpreting and evaluating the content, structure, and purpose of the document.
-            - Ability to assess the accuracy, clarity, and completeness of the information presented.
-    
-            Style, Tone, and Voice Adaptation:
-            - Adopt the writing <style>, <tone>, and <voice> used in the document to ensure consistency and coherence.
-            - Maintain the level of formality, technicality, or informality as appropriate to the document’s context.
-            
-            Your analysis should include:
-            - A thorough evaluation of the content, ensuring it aligns with <domain>-specific standards and practices.
-            - An assessment of the clarity and precision of the information and any accompanying diagrams or illustrations.
-            - Feedback on the strengths and potential areas for improvement in the document.
-            - A determination of whether the document meets its intended purpose and audience requirements.
-            - Proposals for any necessary amendments or enhancements to improve the document’s effectiveness and accuracy.
-            
+        
             ---
 
             Generate a response filling the template with appropriate details based on the content of the document and return the filled in template as response."""}
