@@ -7,7 +7,7 @@ import logging
 import io
 
 # Add your logo at the top of the app
-st.logo("logo.png", size = "large", icon_image="logo.png")  # Adjust the width to suit your design
+#st.logo("logo.png", size = "large", icon_image="logo.png")  # Adjust the width to suit your design
 
 # Initialize session state variables
 if 'documents' not in st.session_state:
