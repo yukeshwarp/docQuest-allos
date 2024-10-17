@@ -34,7 +34,7 @@ def compress_image(image_data, max_size=(1024, 1024), quality=55):
         logging.error(f"Error compressing image: {e}")
         return image_data  # Return original data if compression fails
 
-def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
+def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.4):
     """Detect pages with OCR images or vector graphics."""
     detected_pages = []
     images = page.get_images(full=True)
@@ -45,8 +45,7 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
     text_area = sum((block[2] - block[0]) * (block[3] - block[1]) for block in text_blocks)
     text_coverage = text_area / page_area
         
-    
-    if text_area==0:
+    if text_area == 0:
         pix = page.get_pixmap() 
         img_data = pix.tobytes("png")
         pix = None
@@ -66,50 +65,49 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.19):
     return None
 
 
-def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.4):
-    """Process a batch of PDF pages and extract summaries, full text, and image analysis."""
+def process_page(pdf_document, page_number, system_prompt, ocr_text_threshold=0.4):
+    """Process a single PDF page and extract summaries, full text, and image analysis."""
     previous_summary = ""
-    batch_data = []
+    page_data = {}
 
-    for page_number in batch:
-        try:
-            page = pdf_document.load_page(page_number)
-            text = page.get_text("text").strip()
-            preprocessed_text = remove_stopwords_and_blanks(text)
+    try:
+        page = pdf_document.load_page(page_number)
+        text = page.get_text("text").strip()
+        preprocessed_text = remove_stopwords_and_blanks(text)
 
-            # Summarize the page
-            summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
-            previous_summary = summary
+        # Summarize the page
+        summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
+        previous_summary = summary
 
-            # Detect images or vector graphics
-            image_data = detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold)
-            image_analysis = []
-            if image_data:
-                image_explanation = get_image_explanation(image_data)
-                image_analysis.append({"page_number": page_number + 1, "explanation": image_explanation})
+        # Detect images or vector graphics
+        image_data = detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold)
+        image_analysis = []
+        if image_data:
+            image_explanation = get_image_explanation(image_data)
+            image_analysis.append({"page_number": page_number + 1, "explanation": image_explanation})
 
-            # Store the extracted data, including the text
-            batch_data.append({
-                "page_number": page_number + 1,
-                "full_text": text,# Adding full text to batch data
-                "text_summary": summary,  
-                "image_analysis": image_analysis
-            })
+        # Store the extracted data, including the text
+        page_data = {
+            "page_number": page_number + 1,
+            "full_text": text,  # Adding full text to batch data
+            "text_summary": summary,  
+            "image_analysis": image_analysis
+        }
 
-        except Exception as e:
-            logging.error(f"Error processing page {page_number + 1}: {e}")
-            batch_data.append({
-                "page_number": page_number + 1,
-                "full_text": "",  # Include empty text in case of an error
-                "text_summary": "Error in processing this page",
-                "image_analysis": []
-            })
+    except Exception as e:
+        logging.error(f"Error processing page {page_number + 1}: {e}")
+        page_data = {
+            "page_number": page_number + 1,
+            "full_text": "",  # Include empty text in case of an error
+            "text_summary": "Error in processing this page",
+            "image_analysis": []
+        }
 
-    return batch_data
+    return page_data
 
 
 def process_pdf_pages(uploaded_file):
-    """Process the PDF pages in batches and extract summaries and image analysis."""
+    """Process the PDF pages sequentially and extract summaries and image analysis."""
     file_name = uploaded_file.name
     
     try:
@@ -130,20 +128,12 @@ def process_pdf_pages(uploaded_file):
             full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
 
         # Generate system prompt from full text
-        system_prompt =  generate_system_prompt(full_textr)
-        # Batch size of 5 pages
-        batch_size = 5
-        page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
+        system_prompt = generate_system_prompt(full_textr)
         
-        # Use ThreadPoolExecutor to process batches concurrently
-        with ThreadPoolExecutor() as executor:
-            future_to_batch = {executor.submit(process_page_batch, pdf_document, batch, system_prompt): batch for batch in page_batches}
-            for future in as_completed(future_to_batch):
-                try:
-                    batch_data = future.result()  # Get the result of processed batch
-                    document_data["pages"].extend(batch_data)
-                except Exception as e:
-                    logging.error(f"Error processing batch: {e}")
+        # Process pages one by one
+        for page_number in range(total_pages):
+            page_data = process_page(pdf_document, page_number, system_prompt)
+            document_data["pages"].append(page_data)
 
         # Close the PDF document after processing
         pdf_document.close()
@@ -155,3 +145,4 @@ def process_pdf_pages(uploaded_file):
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
+
