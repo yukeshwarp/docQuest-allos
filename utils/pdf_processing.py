@@ -8,6 +8,7 @@ import logging
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
+generated_system_prompt = None
 
 def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
@@ -64,7 +65,7 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
             # Store the extracted data, including the text
             batch_data.append({
                 "page_number": page_number + 1,
-                "full_text": text,# Adding full text to batch data
+                "full_text": text,  # Adding full text to batch data
                 "text_summary": summary,  
                 "image_analysis": image_analysis
             })
@@ -80,9 +81,9 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
 
     return batch_data
 
-
-def process_pdf_pages(uploaded_file):
+def process_pdf_pages(uploaded_file, first_file=False):
     """Process the PDF pages in batches and extract summaries and image analysis."""
+    global generated_system_prompt
     file_name = uploaded_file.name
     
     try:
@@ -98,19 +99,25 @@ def process_pdf_pages(uploaded_file):
         document_data = {"document_name": file_name, "pages": []}  # Add document_name at the top
         total_pages = len(pdf_document)
         full_textr = ""
-        for page_numberr in range(total_pages):
-            pager = pdf_document.load_page(page_numberr)
-            full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
+        
+        # If it's the first file, generate the system prompt
+        if first_file and generated_system_prompt is None:
+            for page_numberr in range(total_pages):
+                pager = pdf_document.load_page(page_numberr)
+                full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
+                if len(full_textr.split()) >= 200:
+                    break
+            # Use the first 200 words for the system prompt
+            first_200_words = ' '.join(full_textr.split()[:200])
+            generated_system_prompt = generate_system_prompt(first_200_words)
 
-        # Generate system prompt from full text
-        system_prompt =  generate_system_prompt(full_textr)
         # Batch size of 5 pages
         batch_size = 5
         page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
         
         # Use ThreadPoolExecutor to process batches concurrently
         with ThreadPoolExecutor() as executor:
-            future_to_batch = {executor.submit(process_page_batch, pdf_document, batch, system_prompt): batch for batch in page_batches}
+            future_to_batch = {executor.submit(process_page_batch, pdf_document, batch, generated_system_prompt): batch for batch in page_batches}
             for future in as_completed(future_to_batch):
                 try:
                     batch_data = future.result()  # Get the result of processed batch
