@@ -47,12 +47,13 @@ def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.
         try:
             page = pdf_document.load_page(page_number)
             text = page.get_text("text").strip()
-            preprocessed_text = remove_stopwords_and_blanks(text)
-
+            summary = ""
             # Summarize the page
-            summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
-            previous_summary = summary
-
+            if text!="":
+                preprocessed_text = remove_stopwords_and_blanks(text)
+                summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
+                previous_summary = summary
+            
             # Detect images or vector graphics
             image_data = detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold)
             image_analysis = []
