@@ -27,7 +27,7 @@ def get_image_explanation(base64_image, retries=5, initial_delay=2):
             {"role": "user", "content": [
                 {
                     "type": "text",
-                    "text": "Explain the content of this image. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification of the image and be accurate in your explanation."
+                    "text": "Explain the contents and figures or tables if present of this image of a document page. The explanation should be concise and semantically meaningful. Do not make assumptions about the specification and be accurate in your explanation."
                 },
                 {
                     "type": "image_url",
