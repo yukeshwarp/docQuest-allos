@@ -108,7 +108,7 @@ with st.sidebar:
         )
 
 # Main Page - Chat Interface
-st.image("logoD.png", width = 40)
+st.image("logoD.png", width = 200)
 st.title("docQuest")
 st.subheader("Unveil the Essence, Compare Easily, Analyze Smartly", divider="orange")
 if st.session_state.documents:
