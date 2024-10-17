@@ -3,6 +3,9 @@ from dotenv import load_dotenv
 import requests
 from utils.config import azure_endpoint, api_key, api_version, model
 import logging
+import time
+import requests
+import random
 
 # Set up logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s")
@@ -14,8 +17,7 @@ def get_headers():
         "api-key": api_key
     }
 
-import time
-import requests
+
 
 def get_image_explanation(base64_image, retries=5, initial_delay=2):
     """Get image explanation from OpenAI API with exponential backoff."""
@@ -134,9 +136,10 @@ def generate_system_prompt(document_content):
         return f"Error: Unable to generate system prompt due to network issues or API error."
 
 
-def summarize_page(page_text, previous_summary, page_number, system_prompt):
+def summarize_page(page_text, previous_summary, page_number, system_prompt, max_retries=5, base_delay=1, max_delay=32):
     """
     Summarize a single page's text using LLM, and generate a system prompt based on the document content.
+    Implements exponential backoff with jitter to handle timeout errors.
     """
     headers = get_headers()
     
@@ -159,20 +162,30 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt):
         ],
         "temperature": 0.0
     }
-
-    try:
-        response = requests.post(
-            f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-            headers=headers,
-            json=data,
-            timeout=50
-        )
-        response.raise_for_status()
-        return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
     
-    except requests.exceptions.RequestException as e:
-        logging.error(f"Error summarizing page {page_number}: {e}")
-        return f"Error: Unable to summarize page {page_number} due to network issues or API error."
+    attempt = 0
+    while attempt < max_retries:
+        try:
+            response = requests.post(
+                f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+                headers=headers,
+                json=data,
+                timeout=50
+            )
+            response.raise_for_status()
+            return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
+        
+        except requests.exceptions.RequestException as e:
+            attempt += 1
+            if attempt >= max_retries:
+                logging.error(f"Error summarizing page {page_number}: {e}")
+                return f"Error: Unable to summarize page {page_number} due to network issues or API error."
+
+            # Calculate exponential backoff with jitter
+            delay = min(max_delay, base_delay * (2 ** attempt))  # Exponential backoff
+            jitter = random.uniform(0, delay)  # Add jitter for randomness
+            logging.warning(f"Retrying in {jitter:.2f} seconds (attempt {attempt}) due to error: {e}")
+            time.sleep(jitter)
 
 
 def ask_question(documents, question, chat_history):
