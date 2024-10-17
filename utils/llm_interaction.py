@@ -238,7 +238,7 @@ def ask_question(documents, question, chat_history):
             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
             headers=headers,
             json=data,
-            timeout=20  # Add timeout for API request
+            timeout=60  # Add timeout for API request
         )
         response.raise_for_status()  # Raise HTTPError for bad responses
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No answer provided.").strip()
