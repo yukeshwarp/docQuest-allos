@@ -14,7 +14,7 @@ def remove_stopwords_and_blanks(text):
     """Clean the text by removing extra spaces."""
     return ' '.join(text.split())
 
-def compress_image(image_data, max_size=(1024, 1024), quality=55):
+def compress_image(image_data, max_size=(1024, 1024), quality=85):
     """Compress image to reduce size before sending to server."""
     try:
         image = Image.open(io.BytesIO(image_data))  # Open image from byte data
@@ -65,49 +65,50 @@ def detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold=0.4):
     return None
 
 
-def process_page(pdf_document, page_number, system_prompt, ocr_text_threshold=0.4):
-    """Process a single PDF page and extract summaries, full text, and image analysis."""
+def process_page_batch(pdf_document, batch, system_prompt, ocr_text_threshold=0.4):
+    """Process a batch of PDF pages and extract summaries, full text, and image analysis."""
     previous_summary = ""
-    page_data = {}
+    batch_data = []
 
-    try:
-        page = pdf_document.load_page(page_number)
-        text = page.get_text("text").strip()
-        preprocessed_text = remove_stopwords_and_blanks(text)
+    for page_number in batch:
+        try:
+            page = pdf_document.load_page(page_number)
+            text = page.get_text("text").strip()
+            preprocessed_text = remove_stopwords_and_blanks(text)
 
-        # Summarize the page
-        summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
-        previous_summary = summary
+            # Summarize the page
+            summary = summarize_page(preprocessed_text, previous_summary, page_number + 1, system_prompt)
+            previous_summary = summary
 
-        # Detect images or vector graphics
-        image_data = detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold)
-        image_analysis = []
-        if image_data:
-            image_explanation = get_image_explanation(image_data)
-            image_analysis.append({"page_number": page_number + 1, "explanation": image_explanation})
+            # Detect images or vector graphics
+            image_data = detect_ocr_images_and_vector_graphics_in_pdf(page, ocr_text_threshold)
+            image_analysis = []
+            if image_data:
+                image_explanation = get_image_explanation(image_data)
+                image_analysis.append({"page_number": page_number + 1, "explanation": image_explanation})
 
-        # Store the extracted data, including the text
-        page_data = {
-            "page_number": page_number + 1,
-            "full_text": text,  # Adding full text to batch data
-            "text_summary": summary,  
-            "image_analysis": image_analysis
-        }
+            # Store the extracted data, including the text
+            batch_data.append({
+                "page_number": page_number + 1,
+                "full_text": text,# Adding full text to batch data
+                "text_summary": summary,  
+                "image_analysis": image_analysis
+            })
 
-    except Exception as e:
-        logging.error(f"Error processing page {page_number + 1}: {e}")
-        page_data = {
-            "page_number": page_number + 1,
-            "full_text": "",  # Include empty text in case of an error
-            "text_summary": "Error in processing this page",
-            "image_analysis": []
-        }
+        except Exception as e:
+            logging.error(f"Error processing page {page_number + 1}: {e}")
+            batch_data.append({
+                "page_number": page_number + 1,
+                "full_text": "",  # Include empty text in case of an error
+                "text_summary": "Error in processing this page",
+                "image_analysis": []
+            })
 
-    return page_data
+    return batch_data
 
 
 def process_pdf_pages(uploaded_file):
-    """Process the PDF pages sequentially and extract summaries and image analysis."""
+    """Process the PDF pages in batches and extract summaries and image analysis."""
     file_name = uploaded_file.name
     
     try:
@@ -128,21 +129,28 @@ def process_pdf_pages(uploaded_file):
             full_textr += pager.get_text("text").strip() + " "  # Concatenate all text
 
         # Generate system prompt from full text
-        system_prompt = generate_system_prompt(full_textr)
+        system_prompt =  generate_system_prompt(full_textr)
+        # Batch size of 5 pages
+        batch_size = 5
+        page_batches = [range(i, min(i + batch_size, total_pages)) for i in range(0, total_pages, batch_size)]
         
-        # Process pages one by one
-        for page_number in range(total_pages):
-            page_data = process_page(pdf_document, page_number, system_prompt)
-            document_data["pages"].append(page_data)
+        # Use ThreadPoolExecutor to process batches concurrently
+        with ThreadPoolExecutor() as executor:
+            future_to_batch = {executor.submit(process_page_batch, pdf_document, batch, system_prompt): batch for batch in page_batches}
+            for future in as_completed(future_to_batch):
+                try:
+                    batch_data = future.result()  # Get the result of processed batch
+                    document_data["pages"].extend(batch_data)
+                except Exception as e:
+                    logging.error(f"Error processing batch: {e}")
 
         # Close the PDF document after processing
         pdf_document.close()
 
         # Sort pages by page_number to ensure correct order
         document_data["pages"].sort(key=lambda x: x["page_number"])
-        return document_data, system_prompt
+        return document_data
 
     except Exception as e:
         logging.error(f"Error processing PDF file {file_name}: {e}")
         raise ValueError(f"Unable to process the file {file_name}. Error: {e}")
-
