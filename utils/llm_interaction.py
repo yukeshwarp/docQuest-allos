@@ -47,8 +47,19 @@ def get_image_explanation(base64_image, retries=5, initial_delay=2):
         try:
             response = requests.post(url, headers=headers, json=data, timeout=30)  # Adjusted timeout
             response.raise_for_status()  # Raise HTTPError for bad responses
-            return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
-        
+            
+            result = response.json()
+            # Extract token usage from the response
+            token_usage = result.get('usage', {})
+            input_tokens = token_usage.get('prompt_tokens', 'N/A')
+            output_tokens = token_usage.get('completion_tokens', 'N/A')
+            total_tokens = token_usage.get('total_tokens', 'N/A')
+
+            # Log token usage
+            logging.info(f"Image explanation: Input tokens = {input_tokens}, Output tokens = {output_tokens}, Total tokens = {total_tokens}")
+
+            return result.get('choices', [{}])[0].get('message', {}).get('content', "No explanation provided.")
+
         except requests.exceptions.Timeout as e:
             if attempt < retries - 1:
                 wait_time = initial_delay * (2 ** attempt)  # Exponential backoff
@@ -128,6 +139,16 @@ def generate_system_prompt(document_content):
             timeout=20
         )
         response.raise_for_status()
+        
+        # Extract token usage from the response
+        token_usage = response.json().get('usage', {})
+        input_tokens = token_usage.get('prompt_tokens', 'N/A')
+        output_tokens = token_usage.get('completion_tokens', 'N/A')
+        total_tokens = token_usage.get('total_tokens', 'N/A')
+
+        # Log token usage
+        logging.info(f"Generate system prompt: Input tokens = {input_tokens}, Output tokens = {output_tokens}, Total tokens = {total_tokens}")
+
         prompt_response = response.json().get('choices', [{}])[0].get('message', {}).get('content', "")
         return prompt_response.strip()
 
@@ -144,11 +165,9 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt, max_
     headers = get_headers()
     
     # Generate the system prompt based on the document content
-    system_prompt = system_prompt
-    
     prompt_message = (
         f"Please rewrite the following page content from (Page {page_number}) along with context from the previous page summary "
-        f"to make them concise and well-structured. Maintain proper listing and referencing of the contents if present."
+        f"to make them concise and well-structured. Maintain proper listing and referencing of the contents if present. "
         f"Do not add any new information or make assumptions. Keep the meaning accurate and the language clear.\n\n"
         f"Previous page summary: {previous_summary}\n\n"
         f"Current page content:\n{page_text}\n"
@@ -173,6 +192,16 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt, max_
                 timeout=50
             )
             response.raise_for_status()
+
+            # Extract token usage from the response
+            token_usage = response.json().get('usage', {})
+            input_tokens = token_usage.get('prompt_tokens', 'N/A')
+            output_tokens = token_usage.get('completion_tokens', 'N/A')
+            total_tokens = token_usage.get('total_tokens', 'N/A')
+
+            # Log token usage
+            logging.info(f"Summarize page {page_number}: Input tokens = {input_tokens}, Output tokens = {output_tokens}, Total tokens = {total_tokens}")
+
             return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No summary provided.").strip()
         
         except requests.exceptions.RequestException as e:
@@ -186,7 +215,6 @@ def summarize_page(page_text, previous_summary, page_number, system_prompt, max_
             jitter = random.uniform(0, delay)  # Add jitter for randomness
             logging.warning(f"Retrying in {jitter:.2f} seconds (attempt {attempt}) due to error: {e}")
             time.sleep(jitter)
-
 
 def ask_question(documents, question, chat_history):
     """Answer a question based on the full text, summarized content of multiple PDFs, and chat history."""
@@ -255,9 +283,18 @@ def ask_question(documents, question, chat_history):
             timeout=60  # Add timeout for API request
         )
         response.raise_for_status()  # Raise HTTPError for bad responses
+
+        # Extract token usage from the response
+        token_usage = response.json().get('usage', {})
+        input_tokens = token_usage.get('prompt_tokens', 'N/A')
+        output_tokens = token_usage.get('completion_tokens', 'N/A')
+        total_tokens = token_usage.get('total_tokens', 'N/A')
+
+        # Log token usage
+        logging.info(f"Ask question: Input tokens = {input_tokens}, Output tokens = {output_tokens}, Total tokens = {total_tokens}")
+
         return response.json().get('choices', [{}])[0].get('message', {}).get('content', "No answer provided.").strip()
 
     except requests.exceptions.RequestException as e:
         logging.error(f"Error answering question '{question}': {e}")
         raise Exception(f"Unable to answer the question due to network issues or API error.")
-
