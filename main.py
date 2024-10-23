@@ -7,15 +7,6 @@ import logging
 import io
 import tiktoken  # For token counting
 
-hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            header {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
 # Initialize session state variables
 if 'documents' not in st.session_state:
     st.session_state.documents = {}
