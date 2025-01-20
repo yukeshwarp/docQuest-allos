@@ -2,6 +2,8 @@ from azure.storage.blob import BlobServiceClient, ContentSettings
 import streamlit as st
 import json
 import redis
+from io import BytesIO
+from docx import Document
 from pdf_processing import process_pdf_task
 from respondent import ask_question
 from utils.config import (
@@ -103,7 +105,7 @@ def handle_question(prompt, spinner_placeholder):
 
 
 def display_chat():
-    """Display chat history."""
+    """Display chat history with download buttons."""
     if st.session_state.chat_history:
         for i, chat in enumerate(st.session_state.chat_history):
             with st.chat_message("user"):
@@ -111,9 +113,45 @@ def display_chat():
             with st.chat_message("assistant"):
                 st.write(chat["answer"])
 
+                # Create a Word document with formatted content
+                doc = Document()
+                doc.add_heading("Chat Response", level=1)
+                doc.add_paragraph("Question:", style="Heading 2")
+                doc.add_paragraph(chat["question"])
+
+                doc.add_paragraph("Answer:", style="Heading 2")
+                
+                # Format answer content
+                for line in chat["answer"].split("\n"):
+                    if line.startswith("#### "):  # Convert to Heading 3
+                        doc.add_heading(line.replace("#### ", ""), level=3)
+                    elif line.startswith("- **"):  # Bold for list items
+                        line = line.replace("- **", "").replace("**:", ":")
+                        doc.add_paragraph(line, style="List Bullet")
+                    elif line.startswith("- "):  # Normal bullet points
+                        doc.add_paragraph(line, style="List Bullet")
+                    elif line.startswith("### "):  # Convert to Heading 2
+                        doc.add_heading(line.replace("### ", ""), level=2)
+                    elif line.strip():  # Add as normal paragraph
+                        doc.add_paragraph(line)
+
+                # Save the document to a BytesIO object
+                doc_io = BytesIO()
+                doc.save(doc_io)
+                doc_io.seek(0)
+
+                # Add a download button for the Word document
+                st.download_button(
+                    label="Download",
+                    data=doc_io,
+                    file_name=f"chat_response_{i+1}.docx",
+                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                    help="Download response as word document",
+                    icon="📥"
+                )
 
 
-st.image("logoD.png", width=200)
+
 st.title("docQuest")
 st.subheader("Unveil the Essence, Compare Easily, Analyze Smartly")
 
