@@ -455,9 +455,8 @@ def ask_question(documents, question, chat_history):
 
         Answer the following question based **strictly and only** on the factual information provided in the content above.
         Carefully verify all details from the content and do not generate any information that is not explicitly mentioned in it.
-        Mention the page numbers from the document that attribute to the answer.
         Ensure the response is clearly formatted for readability using subheadings and bullets if necessary.
-        Return possible relevant product, legal task and link to them.
+        Return possible relevant links if present.
 
         Question: {preprocessed_question}
         """
