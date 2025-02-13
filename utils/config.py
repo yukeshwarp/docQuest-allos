@@ -1,6 +1,5 @@
 import os
 from dotenv import load_dotenv
-from openai import AzureOpenAI
 
 load_dotenv() 
 
@@ -14,9 +13,3 @@ redis_host = os.getenv("HOST_NAME")
 redis_pass = os.getenv("PASSWORD")
 azure_blob_connection_string = os.getenv("BLOB_CONNECTION_STRING")
 azure_container_name = os.getenv("BLOB_CONTAINER_NAME")
-
-client = AzureOpenAI(
-    azure_endpoint=azure_endpoint,
-    api_key=api_key,
-    api_version="2024-10-01-preview",
-)

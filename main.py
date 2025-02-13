@@ -88,27 +88,16 @@ def handle_question(prompt, spinner_placeholder):
 
             with spinner_placeholder.container():
                 st.spinner("Thinking...")
-                response_stream, tot_tokens = ask_question(
+                answer, tot_tokens = ask_question(
                     documents_data, prompt, st.session_state.chat_history
                 )
 
-            bot_response = ""
-            with st.chat_message("assistant"):
-                response_placeholder = st.empty()
-                for chunk in response_stream:
-                    if chunk.choices:
-                        bot_response += chunk.choices[0].delta.content or ""
-                        response_placeholder.markdown(bot_response)
-
-            st.session_state.messages.append({"role": "assistant", "content": bot_response})
-
-
-            # st.session_state.chat_history.append(
-            #     {
-            #         "question": prompt,
-            #         "answer": f"{answer}\nTotal tokens: {tot_tokens}",
-            #     }
-            # )
+            st.session_state.chat_history.append(
+                {
+                    "question": prompt,
+                    "answer": f"{answer}\nTotal tokens: {tot_tokens}",
+                }
+            )
         except Exception as e:
             st.error(f"Error processing question: {e}")
         finally:

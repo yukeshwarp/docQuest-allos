@@ -1,5 +1,5 @@
 import requests
-from utils.config import azure_endpoint, api_key, api_version, model, client
+from utils.config import azure_endpoint, api_key, api_version, model
 import logging
 import time
 import random
@@ -461,50 +461,37 @@ def ask_question(documents, question, chat_history):
         Question: {preprocessed_question}
         """
 
-    # final_data = {
-    #     "model": model,
-    #     "messages": [
-    #         {
-    #             "role": "system",
-    #             "content": "You are an assistant that answers questions based only on provided knowledge base.",
-    #         },
-    #         {"role": "user", "content": prompt_message},
-    #     ],
-    #     "temperature": 0.0,
-    # }
-
-    response_stream = client.chat.completions.create(
-                model="gpt-4o",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "You are an assistant that answers questions based only on provided knowledge base.",
-                    },
-                    {"role": "user", "content": prompt_message},
-                ],
-                temperature=0.0,
-                stream=True,
-            )
+    final_data = {
+        "model": model,
+        "messages": [
+            {
+                "role": "system",
+                "content": "You are an assistant that answers questions based only on provided knowledge base.",
+            },
+            {"role": "user", "content": prompt_message},
+        ],
+        "temperature": 0.0,
+    }
 
     for attempt in range(5):
         try:
-            # response = requests.post(
-            #     f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-            #     headers=headers,
-            #     json=final_data,
-            #     timeout=60,
-            # )
-            # response.raise_for_status()
-            # answer_content = (
-            #     response.json()
-            #     .get("choices", [{}])[0]
-            #     .get("message", {})
-            #     .get("content", "No answer provided.")
-            #     .strip()
-            # )
+            response = requests.post(
+                f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+                headers=headers,
+                json=final_data,
+                timeout=60,
+            )
+            response.raise_for_status()
+            answer_content = (
+                response.json()
+                .get("choices", [{}])[0]
+                .get("message", {})
+                .get("content", "No answer provided.")
+                .strip()
+            )
 
-            #total_tokens = count_tokens(prompt_message)
-            return response_stream, 10
+            total_tokens = count_tokens(prompt_message)
+            return answer_content, total_tokens
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error answering question '{question}': {e}")
