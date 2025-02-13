@@ -1,5 +1,5 @@
 import requests
-from utils.config import azure_endpoint, api_key, api_version, model
+from utils.config import azure_endpoint, api_key, api_version, model, client
 import logging
 import time
 import random
@@ -455,43 +455,56 @@ def ask_question(documents, question, chat_history):
 
         Answer the following question based **strictly and only** on the factual information provided in the content above.
         Carefully verify all details from the content and do not generate any information that is not explicitly mentioned in it.
+        Mention the page numbers from the document that attribute to the answer.
         Ensure the response is clearly formatted for readability using subheadings and bullets if necessary.
-        Return possible relevant links if present.
 
         Question: {preprocessed_question}
         """
 
-    final_data = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an assistant that answers questions based only on provided knowledge base.",
-            },
-            {"role": "user", "content": prompt_message},
-        ],
-        "temperature": 0.0,
-    }
+    # final_data = {
+    #     "model": model,
+    #     "messages": [
+    #         {
+    #             "role": "system",
+    #             "content": "You are an assistant that answers questions based only on provided knowledge base.",
+    #         },
+    #         {"role": "user", "content": prompt_message},
+    #     ],
+    #     "temperature": 0.0,
+    # }
+
+    response_stream = client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {
+                        "role": "system",
+                        "content": "You are an assistant that answers questions based only on provided knowledge base.",
+                    },
+                    {"role": "user", "content": prompt_message},
+                ],
+                temperature=0.0,
+                stream=True,
+            )
 
     for attempt in range(5):
         try:
-            response = requests.post(
-                f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-                headers=headers,
-                json=final_data,
-                timeout=60,
-            )
-            response.raise_for_status()
-            answer_content = (
-                response.json()
-                .get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "No answer provided.")
-                .strip()
-            )
+            # response = requests.post(
+            #     f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            #     headers=headers,
+            #     json=final_data,
+            #     timeout=60,
+            # )
+            # response.raise_for_status()
+            # answer_content = (
+            #     response.json()
+            #     .get("choices", [{}])[0]
+            #     .get("message", {})
+            #     .get("content", "No answer provided.")
+            #     .strip()
+            # )
 
-            total_tokens = count_tokens(prompt_message)
-            return answer_content, total_tokens
+            #total_tokens = count_tokens(prompt_message)
+            return response_stream, 10
 
         except requests.exceptions.RequestException as e:
             logging.error(f"Error answering question '{question}': {e}")

@@ -88,16 +88,27 @@ def handle_question(prompt, spinner_placeholder):
 
             with spinner_placeholder.container():
                 st.spinner("Thinking...")
-                answer, tot_tokens = ask_question(
+                response_stream, tot_tokens = ask_question(
                     documents_data, prompt, st.session_state.chat_history
                 )
 
-            st.session_state.chat_history.append(
-                {
-                    "question": prompt,
-                    "answer": f"{answer}\nTotal tokens: {tot_tokens}",
-                }
-            )
+            bot_response = ""
+            with st.chat_message("assistant"):
+                response_placeholder = st.empty()
+                for chunk in response_stream:
+                    if chunk.choices:
+                        bot_response += chunk.choices[0].delta.content or ""
+                        response_placeholder.markdown(bot_response)
+
+            st.session_state.messages.append({"role": "assistant", "content": bot_response})
+
+
+            # st.session_state.chat_history.append(
+            #     {
+            #         "question": prompt,
+            #         "answer": f"{answer}\nTotal tokens: {tot_tokens}",
+            #     }
+            # )
         except Exception as e:
             st.error(f"Error processing question: {e}")
         finally:
@@ -183,7 +194,7 @@ with st.sidebar:
     with st.expander("Upload Document(s)", expanded=False):
         uploaded_files = st.file_uploader(
             "Upload files less than 400 pages",
-            type=["pdf", "docx", "xlsx", "pptx"],
+            type=["pdf", "docx", "xlsx", "pptx", "xls"],
             accept_multiple_files=True,
             help="If your question is not answered properly or there's an error, consider uploading smaller documents or splitting larger ones.",
             label_visibility="collapsed",
