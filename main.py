@@ -73,15 +73,21 @@ def upload_to_blob_storage(file_name, file_data):
         st.error(f"Error uploading to Azure Blob Storage: {e}")
 
 
-def search_bing(query):
+import requests
+
+def search_bing(query, bing_key, bing_endpoint):
     """Search for the top 3 Bing results."""
-    subscription_key = bing_key  # Replace with your Bing API subscription key
-    search_url = bing_endpoint
-    headers = {"Ocp-Apim-Subscription-Key": subscription_key}
+    # Set up headers and parameters
+    headers = {"Ocp-Apim-Subscription-Key": bing_key}
     params = {"q": query, "textDecorations": True, "textFormat": "HTML", "count": 3}
 
-    response = requests.get(search_url, headers=headers, params=params)
+    # Perform the GET request
+    response = requests.get(bing_endpoint, headers=headers, params=params)
+
+    # Raise an error if the request was not successful
     response.raise_for_status()
+
+    # Parse the JSON response
     search_results = response.json()
 
     # Extract the URLs of the top 3 results
@@ -90,6 +96,7 @@ def search_bing(query):
         results.append(web_page["url"])
 
     return results
+
 
 
 def handle_question(prompt, spinner_placeholder):
@@ -113,7 +120,7 @@ def handle_question(prompt, spinner_placeholder):
                 )
 
             # Get top 3 Bing search results
-            bing_results = search_bing(extract_topics_from_text(f"{prompt}\n{answer}"))
+            bing_results = search_bing(prompt, bing_key, bing_endpoint)
 
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
