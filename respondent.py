@@ -67,7 +67,7 @@ def is_summary_request(question):
         == "yes"
     )
 
-def bing_search_topics(text, max_topics=10, max_top_words=50):
+def bing_search_topics(text, max_topics=10, max_top_words=10):
     try:
         
         max_features = min(1000, len(text.split()))
