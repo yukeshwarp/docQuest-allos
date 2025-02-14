@@ -17,7 +17,7 @@ from utils.config import (
 import uuid
 import tiktoken
 import time
-
+import requests
 
 def count_tokens(text, model="gpt-4o"):
     """Count the number of tokens in the text for a specific model."""
