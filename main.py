@@ -128,8 +128,8 @@ def handle_question(prompt, spinner_placeholder):
             answer += "\n\nGo to the internet for more information:\n"
             for i, link in enumerate(bing_results, start=1):
                 # Parse the URL and extract the hostname (domain)
-                domain = urlparse(link).netloc
-                answer += f"{i}. {domain}\n"
+                #domain = urlparse(link).netloc
+                answer += f"{i}. {link}\n"
 
             # Append the question and answer to chat history
             st.session_state.chat_history.append(
