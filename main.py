@@ -120,7 +120,7 @@ def handle_question(prompt, spinner_placeholder):
                 )
             bing_search_query = f"{prompt}\n{answer}"
             # Get top 3 Bing search results
-            bing_results = search_bing(str(bing_search_topics(bing_search_query)), bing_key, bing_endpoint)
+            bing_results = search_bing(prompt, bing_key, bing_endpoint)
 
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
