@@ -5,7 +5,7 @@ import redis
 from io import BytesIO
 from docx import Document
 from pdf_processing import process_pdf_task
-from respondent import ask_question
+from respondent import ask_question, extract_topics_from_text
 from utils.config import (
     redis_host,
     redis_pass,
@@ -113,7 +113,7 @@ def handle_question(prompt, spinner_placeholder):
                 )
 
             # Get top 3 Bing search results
-            bing_results = search_bing(prompt)
+            bing_results = search_bing(extract_topics_from_text(f"{prompt}\n{answer}"))
 
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
