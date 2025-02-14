@@ -118,7 +118,7 @@ def handle_question(prompt, spinner_placeholder):
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
             for i, link in enumerate(bing_results, start=1):
-                answer += f"{i}. [Link {i}]({link})\n"
+                answer += f"{i}. {link}\n"
 
             # Append the question and answer to chat history
             st.session_state.chat_history.append(
