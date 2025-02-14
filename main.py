@@ -4,6 +4,7 @@ import json
 import redis
 from io import BytesIO
 from docx import Document
+from urllib.parse import urlparse
 from pdf_processing import process_pdf_task
 from respondent import ask_question, bing_search_topics
 from utils.config import (
@@ -126,7 +127,9 @@ def handle_question(prompt, spinner_placeholder):
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
             for i, link in enumerate(bing_results, start=1):
-                answer += f"{i}. {link}\n"
+                # Parse the URL and extract the hostname (domain)
+                domain = urlparse(link).hostname
+                answer += f"{i}. {domain}\n"
 
             # Append the question and answer to chat history
             st.session_state.chat_history.append(
