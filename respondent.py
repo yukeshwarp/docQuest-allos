@@ -67,6 +67,31 @@ def is_summary_request(question):
         == "yes"
     )
 
+def bing_search_topics(text, max_topics=10, max_top_words=50):
+    try:
+        
+        max_features = min(1000, len(text.split()))
+        vectorizer = TfidfVectorizer(stop_words="english", max_features=max_features)
+        tfidf = vectorizer.fit_transform([text])
+
+        
+        n_topics = min(max_topics, tfidf.shape[1])
+        nmf = NMF(n_components=n_topics, random_state=42, max_iter=500)
+        nmf.fit(tfidf)
+
+        feature_names = vectorizer.get_feature_names_out()
+
+        
+        n_top_words = min(max_top_words, len(feature_names))
+        topics = [
+            ", ".join([feature_names[i] for i in topic.argsort()[-n_top_words:][::-1]])
+            for topic in nmf.components_
+        ]
+        return " | ".join(topics)
+    except Exception as e:
+        logging.error(f"Error extracting topics: {e}")
+        return "Error extracting topics."
+
 
 def extract_topics_from_text(text, max_topics=50, max_top_words=50):
     try:
