@@ -118,7 +118,7 @@ def handle_question(prompt, spinner_placeholder):
                 answer, tot_tokens = ask_question(
                     documents_data, prompt, st.session_state.chat_history
                 )
-            bing_search_query = f"""{prompt}\n{answer}"""
+            bing_search_query = str(f"""{prompt}\n{answer}""")
             search_str = bing_search_topics(bing_search_query)
             # Get top 3 Bing search results
             bing_results = search_bing(search_str, bing_key, bing_endpoint)
@@ -126,7 +126,7 @@ def handle_question(prompt, spinner_placeholder):
             # Add the Bing search results to the answer
             answer += "\n\nGo to the internet for more information:\n"
             for i, link in enumerate(bing_results, start=1):
-                answer += f"{i}. {link}\n"
+                answer += f"{i}. [Link {i}]({link})\n"
 
             # Append the question and answer to chat history
             st.session_state.chat_history.append(
