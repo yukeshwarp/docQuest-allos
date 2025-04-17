@@ -4,21 +4,18 @@ import json
 import redis
 from io import BytesIO
 from docx import Document
-from urllib.parse import urlparse
 from pdf_processing import process_pdf_task
-from respondent import ask_question, bing_search_topics
+from respondent import ask_question
 from utils.config import (
     redis_host,
     redis_pass,
     azure_blob_connection_string,
     azure_container_name,
-    bing_key,
-    bing_endpoint,
 )
 import uuid
 import tiktoken
 import time
-import requests
+
 
 def count_tokens(text, model="gpt-4o"):
     """Count the number of tokens in the text for a specific model."""
@@ -74,36 +71,11 @@ def upload_to_blob_storage(file_name, file_data):
         st.error(f"Error uploading to Azure Blob Storage: {e}")
 
 
-import requests
-
-def search_bing(query, bing_key, bing_endpoint):
-    """Search for the top 3 Bing results."""
-    # Set up headers and parameters
-    headers = {"Ocp-Apim-Subscription-Key": bing_key}
-    params = {"q": query, "textDecorations": True, "textFormat": "HTML", "count": 3}
-
-    # Perform the GET request
-    response = requests.get(bing_endpoint, headers=headers, params=params)
-
-    # Raise an error if the request was not successful
-    response.raise_for_status()
-
-    # Parse the JSON response
-    search_results = response.json()
-
-    # Extract the URLs of the top 3 results
-    results = []
-    for web_page in search_results.get("webPages", {}).get("value", []):
-        results.append(web_page["url"])
-
-    return results
-
-
-
 def handle_question(prompt, spinner_placeholder):
-    """Handle user question by querying the documents in the session and adding Bing search results."""
+    """Handle user question by querying the documents in the session."""
     if prompt:
         try:
+            
             documents_data = {
                 doc_id: doc_info["data"]
                 for doc_id, doc_info in st.session_state.documents.items()
@@ -119,19 +91,7 @@ def handle_question(prompt, spinner_placeholder):
                 answer, tot_tokens = ask_question(
                     documents_data, prompt, st.session_state.chat_history
                 )
-            bing_search_query = str(f"""{prompt}\n{answer}""")
-            search_str = bing_search_topics(bing_search_query)
-            # Get top 3 Bing search results
-            bing_results = search_bing(search_str, bing_key, bing_endpoint)
 
-            # Add the Bing search results to the answer
-            answer += "\n\nGo to the internet for more information:\n"
-            for i, link in enumerate(bing_results, start=1):
-                # Parse the URL and extract the hostname (domain)
-                domain = urlparse(link).netloc
-                answer += f"{i}. [{domain}]({link})\n"
-
-            # Append the question and answer to chat history
             st.session_state.chat_history.append(
                 {
                     "question": prompt,
@@ -223,6 +183,7 @@ with st.sidebar:
     with st.expander("Upload Document(s)", expanded=False):
         uploaded_files = st.file_uploader(
             "Upload files less than 400 pages",
+            type=["pdf", "docx", "xlsx", "pptx", "xls", "msg", "eml"],
             accept_multiple_files=True,
             help="If your question is not answered properly or there's an error, consider uploading smaller documents or splitting larger ones.",
             label_visibility="collapsed",

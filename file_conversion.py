@@ -31,6 +31,8 @@ MIME_TYPES = {
     "potm": "application/vnd.ms-powerpoint.template.macroEnabled.12",
     "ppsm": "application/vnd.ms-powerpoint.slideshow.macroEnabled.12",
     "mdb": "application/vnd.ms-access",
+    "msg": "application/vnd.ms-outlook",
+    "eml": "application/vnd.ms-outlook",
 }
 
 
