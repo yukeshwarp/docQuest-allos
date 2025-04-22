@@ -66,31 +66,6 @@ def is_summary_request(question):
         .lower()
         == "yes"
     )
-    
-def bing_search_topics(text, max_topics=1, max_top_words=10):
-    try:
-        
-        max_features = min(1000, len(text.split()))
-        vectorizer = TfidfVectorizer(stop_words="english", max_features=max_features)
-        tfidf = vectorizer.fit_transform([text])
-
-        
-        n_topics = min(max_topics, tfidf.shape[1])
-        nmf = NMF(n_components=n_topics, random_state=42, max_iter=500)
-        nmf.fit(tfidf)
-
-        feature_names = vectorizer.get_feature_names_out()
-
-        
-        n_top_words = min(max_top_words, len(feature_names))
-        topics = [
-            ", ".join([feature_names[i] for i in topic.argsort()[-n_top_words:][::-1]])
-            for topic in nmf.components_
-        ]
-        return " | ".join(topics)
-    except Exception as e:
-        print(f"Error extracting topics: {e}")
-        return "Error extracting topics."
 
 
 def extract_topics_from_text(text, max_topics=50, max_top_words=50):
@@ -491,9 +466,9 @@ def ask_question(documents, question, chat_history):
         "messages": [
             {
                 "role": "system",
-                "content": "You are an assistant that answers questions based only on provided knowledge base.",
+                "content": "You are an assistant that answers",
             },
-            {"role": "user", "content": prompt_message},
+            {"role": "user", "content": f"Answer questions based only on provided knowledge base \n {prompt_message}"},
         ],
         "temperature": 0.0,
     }
