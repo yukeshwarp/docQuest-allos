@@ -75,7 +75,6 @@ def handle_question(prompt, spinner_placeholder):
     """Handle user question by querying the documents in the session."""
     if prompt:
         try:
-            
             documents_data = {
                 doc_id: doc_info["data"]
                 for doc_id, doc_info in st.session_state.documents.items()
@@ -88,7 +87,7 @@ def handle_question(prompt, spinner_placeholder):
 
             with spinner_placeholder.container():
                 st.spinner("Thinking...")
-                answer, tot_tokens = ask_question(
+                answer, tot_tokens, model_name = ask_question(
                     documents_data, prompt, st.session_state.chat_history
                 )
 
@@ -96,6 +95,7 @@ def handle_question(prompt, spinner_placeholder):
                 {
                     "question": prompt,
                     "answer": f"{answer}\nTotal tokens: {tot_tokens}",
+                    "model_name": model_name or "Unknown"
                 }
             )
         except Exception as e:
@@ -111,6 +111,8 @@ def display_chat():
             with st.chat_message("user"):
                 st.write(chat["question"])
             with st.chat_message("assistant"):
+                if chat.get("model_name"):
+                    st.caption(f"Model used: {chat['model_name']}")
                 st.write(chat["answer"])
 
                 # Create a Word document with formatted content

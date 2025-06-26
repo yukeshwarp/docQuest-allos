@@ -10,6 +10,8 @@ import tiktoken
 import concurrent.futures
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import NMF
+from openai import AzureOpenAI
+import os
 
 logging.basicConfig(
     level=logging.ERROR, format="%(asctime)s [%(levelname)s] %(message)s"
@@ -18,6 +20,11 @@ nltk.download("stopwords", quiet=True)
 
 HEADERS = {"Content-Type": "application/json", "api-key": api_key}
 
+client = AzureOpenAI(
+    azure_endpoint="https://llmtech-eus2.openai.azure.com",
+    api_key="fd87c22896654bc09830988577f2d7b5",
+    api_version="2024-10-01-preview",
+)
 
 def count_tokens(text, model="gpt-4o"):
     encoding = tiktoken.encoding_for_model(model)
@@ -42,7 +49,7 @@ def is_summary_request(question):
         Determine if this question is about requesting a complete summary of the entire document, tell about the document or any request similar to that.
         Answer "yes" or "no".
         """
-    response = requests.post(
+    response =  requests.post(
         f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
         headers=HEADERS,
         json={
@@ -57,7 +64,6 @@ def is_summary_request(question):
             "temperature": 0.0,
         },
     )
-    model_name = log_model_name_from_response(response)
     return (
         response.json()
         .get("choices", [{}])[0]
@@ -140,7 +146,6 @@ def check_page_relevance(doc_name, page, preprocessed_question):
                 json=relevance_data,
                 timeout=60,
             )
-            model_name = log_model_name_from_response(response)
             response.raise_for_status()
             relevance_answer = (
                 response.json()
@@ -226,7 +231,6 @@ def summarize_pages_in_batches(pages, batch_size=10):
                     json=batch_summary_data,
                     timeout=60,
                 )
-                model_name = log_model_name_from_response(response)
                 response.raise_for_status()
                 batch_summary = (
                     response.json()
@@ -242,7 +246,7 @@ def summarize_pages_in_batches(pages, batch_size=10):
                 backoff_time = (2**attempt) + random.uniform(0, 1)
                 time.sleep(backoff_time)
 
-    return "\n\n".join(summaries)
+    return str("\n\n".join(summaries))
 
 
 def is_detailed_summary_request(question):
@@ -259,7 +263,7 @@ def is_detailed_summary_request(question):
     """
 
     
-    data = {
+    data =  {
         "model": model,
         "messages": [
             {
@@ -279,7 +283,6 @@ def is_detailed_summary_request(question):
             json=data,
             timeout=60,
         )
-        model_name = log_model_name_from_response(response)
         response.raise_for_status()
         return (
             response.json()
@@ -355,42 +358,61 @@ def ask_question(documents, question, chat_history):
             """
 
             
-            final_summary_data = {
-                "model": model,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": "You are an assistant that creates a document summary.",
-                    },
-                    {"role": "user", "content": combined_summary_prompt},
-                ],
-                "temperature": 0.0,
-            }
-
+            final_summary_data = client.chat.completions.create(
+                            model=model,  # Replace with your model ID
+                            messages=[
+                                {
+                                    "role": "system",
+                                    "content": "You are an assistant that creates a document summary.",
+                                },
+                                {"role": "user", "content": combined_summary_prompt},
+                            ],
+                            temperature=0.0,
+                            stream=True,
+                        )
+            model_name = getattr(final_summary_data, 'model', "model_not_found")
+            if model_name:
+                logging.info(f"Model : {model_name}")
+                # return "Model mismatch error."
             
-            final_response = requests.post(
-                f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-                headers=headers,
-                json=final_summary_data,
-            )
-            model_name = log_model_name_from_response(final_response)
-            final_summary = (
-                final_response.json()
-                .get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "No summary provided.")
-            )
-            total_tokens = count_tokens(combined_summary_prompt)
-            return final_summary, total_tokens, model_name
+            # {
+            #     "model": model,
+            #     "messages": [
+            #         {
+            #             "role": "system",
+            #             "content": "You are an assistant that creates a document summary.",
+            #         },
+            #         {"role": "user", "content": combined_summary_prompt},
+            #     ],
+            #     "temperature": 0.0,
+            # }
+
+            return final_summary_data
+            # final_response = requests.post(
+            #     f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+            #     headers=headers,
+            #     json=final_summary_data,
+            # )
+            # final_summary = (
+            #     final_response.json()
+            #     .get("choices", [{}])[0]
+            #     .get("message", {})
+            #     .get("content", "No summary provided.")
+            # )
+
+            # total_tokens = count_tokens(combined_summary_prompt)
+
+            # return final_summary, total_tokens
+
         else:
             
             all_pages = [
                 page for doc_data in documents.values() for page in doc_data["pages"]
             ]
             final_summary = summarize_pages_in_batches(all_pages)
-            total_tokens = count_tokens(str(all_pages))
-            return final_summary, total_tokens, None
-# ...existing code...
+            # total_tokens = count_tokens(str(all_pages))
+            return final_summary
+
     
     total_tokens = count_tokens(preprocessed_question)
 
@@ -417,8 +439,7 @@ def ask_question(documents, question, chat_history):
 
         if not relevant_pages:
             return (
-                "The content of the provided documents does not contain an answer to your question.",
-                total_tokens,
+                "The content of the provided documents does not contain an answer to your question."
             )
 
         relevant_pages_content = "\n".join(
@@ -462,56 +483,67 @@ def ask_question(documents, question, chat_history):
 
         Question: {preprocessed_question}
         """
-
-    final_data = {
-        "model": model,
-        "messages": [
-            {
-                "role": "system",
-                "content": "You are an assistant that answers",
-            },
-            {"role": "user", "content": f"Answer questions based only on provided knowledge base \n {prompt_message}"},
-        ],
-        "temperature": 0.0,
-    }
-
     for attempt in range(5):
         try:
-            response = requests.post(
-                f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
-                headers=headers,
-                json=final_data,
-                timeout=60,
-            )
-            model_name = log_model_name_from_response(response)
-            response.raise_for_status()
-            answer_content = (
-                response.json()
-                .get("choices", [{}])[0]
-                .get("message", {})
-                .get("content", "No answer provided.")
-                .strip()
-            )
-            total_tokens = count_tokens(prompt_message)
-            return answer_content, total_tokens, model_name
+            final_data = client.chat.completions.create(
+                                    model=model,  # Replace with your model ID
+                                    messages=[
+                                        {
+                                            "role": "system",
+                                            "content": "You are an assistant that answers questions based only on provided knowledge base.",
+                                        },
+                                        {"role": "user", "content": prompt_message},
+                                    ],
+                                    temperature=0.0,
+                                    stream=True,
+                                )
+            name = getattr(final_data, 'model', "model_not_found")
+            if name:
+                logging.error(f"Model : {name}")
+                # return "Model mismatch error."
+            return final_data
+        
         except requests.exceptions.RequestException as e:
             logging.error(f"Error answering question '{question}': {e}")
             backoff_time = (2**attempt) + random.uniform(0, 1)
             time.sleep(backoff_time)
 
-    return "Error processing question.", total_tokens, None
+    
+    # {
+    #     "model": model,
+    #     "messages": [
+    #         {
+    #             "role": "system",
+    #             "content": "You are an assistant that answers questions based only on provided knowledge base.",
+    #         },
+    #         {"role": "user", "content": prompt_message},
+    #     ],
+    #     "temperature": 0.0,
+    # }
 
-def log_model_name_from_response(response):
-    """
-    Logs the model name from the LLM response object (requests.Response).
-    Returns the model name if found, else None.
-    """
-    try:
-        if hasattr(response, 'json'):
-            model_name = response.json().get('model')
-            if model_name:
-                logging.info(f"LLM response generated by model: {model_name}")
-                return model_name
-    except Exception as e:
-        logging.error(f"Error logging model name: {e}")
-    return None
+    # for attempt in range(5):
+    #     try:
+    #         response = requests.post(
+    #             f"{azure_endpoint}/openai/deployments/{model}/chat/completions?api-version={api_version}",
+    #             headers=headers,
+    #             json=final_data,
+    #             timeout=60,
+    #         )
+    #         response.raise_for_status()
+    #         answer_content = (
+    #             response.json()
+    #             .get("choices", [{}])[0]
+    #             .get("message", {})
+    #             .get("content", "No answer provided.")
+    #             .strip()
+    #         )
+
+    #         total_tokens = count_tokens(prompt_message)
+    #         return answer_content, total_tokens
+
+    #     except requests.exceptions.RequestException as e:
+    #         logging.error(f"Error answering question '{question}': {e}")
+    #         backoff_time = (2**attempt) + random.uniform(0, 1)
+    #         time.sleep(backoff_time)
+
+    return "Error processing question."
